@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Contrato PowerMind</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0f1117;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 40px}
+.logo{font-size:1.4rem;font-weight:900;color:#fff;letter-spacing:1px;margin-bottom:4px;text-align:center}
+.logo span{color:#3b82f6}
+.sub{font-size:.78rem;color:#888;margin-bottom:24px;text-align:center}
+.container{width:100%;max-width:520px}
+.paper{background:#fff;color:#111;border-radius:8px;padding:32px 28px;margin-bottom:20px;font-size:.86rem;line-height:1.8;box-shadow:0 2px 12px #0003}
+.paper p{margin-bottom:12px;text-align:justify}
+.paper ul{margin:8px 0 12px 22px}
+.paper ul li{margin-bottom:5px}
+.paper .secao{margin-top:22px;padding-top:16px;border-top:1px solid #ddd}
+.paper .secao-titulo{font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.8px;color:#111;margin-bottom:10px;border-left:3px solid #111;padding-left:8px}
+.paper .acordo-linha{display:flex;gap:8px;margin-bottom:7px;font-size:.83rem;align-items:baseline}
+.paper .acordo-label{font-weight:700;color:#555;min-width:140px;flex-shrink:0;font-size:.78rem;text-transform:uppercase;letter-spacing:.3px}
+.paper .acordo-valor{color:#111}
+.paper .postagens-tabela{width:100%;border-collapse:collapse;margin-top:8px;font-size:.81rem}
+.paper .postagens-tabela th{background:#1a1a1a;color:#fff;padding:8px 10px;text-align:left;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px}
+.paper .postagens-tabela td{padding:8px 10px;border-bottom:1px solid #eee}
+.paper .postagens-tabela tr:nth-child(even) td{background:#fafafa}
+.paper .local-data{margin-top:20px;font-size:.78rem;color:#888;font-style:italic}
+.sign-section{margin-bottom:16px}
+.sign-label{font-size:.85rem;color:#aaa;margin-bottom:10px;display:block}
+.canvas-wrap{position:relative;background:#f8f9fa;border:2px dashed #3b82f6;border-radius:8px;overflow:hidden;touch-action:none}
+canvas{display:block;width:100%;cursor:crosshair}
+.btn-clear{display:block;background:none;border:1px solid #3d4060;color:#888;font-size:.72rem;padding:5px 12px;border-radius:6px;cursor:pointer;margin-top:8px}
+.btn-assinar{width:100%;background:#059669;color:#fff;border:none;border-radius:10px;padding:16px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px}
+.btn-assinar:disabled{opacity:.5;cursor:not-allowed}
+.loader{display:inline-block;width:16px;height:16px;border:2px solid #ffffff40;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff!important;color:#000!important;padding:0!important;margin:0!important;display:block!important}
+  .logo,.sub,#ct-status-badge,.sign-section,#btn-assinar,.erro-msg,#loading-state,.sucesso button{display:none!important}
+  .container{max-width:100%!important;width:100%!important}
+  #contrato-wrap{display:block!important}
+  .paper{display:block!important;box-shadow:none!important;border-radius:0!important;margin:0!important;padding:20px!important;page-break-after:always;color:#000!important;background:#fff!important}
+  #ct-cronograma-wrap{display:block!important;page-break-before:always}
+  #sucesso{display:none!important}
+  #ct-assinatura-img, #ct-cron-assinatura-img{display:block!important;max-height:60px!important;max-width:220px!important}
+  #ct-assinatura-vazia, #ct-cron-assinatura-vazia{display:none!important}
+}
+.sucesso{display:none;flex-direction:column;align-items:center;text-align:center;gap:16px;background:#1a1d27;border:1px solid #059669;border-radius:12px;padding:40px 24px}
+.sucesso .icon{font-size:3rem}
+.sucesso h2{color:#4ade80;font-size:1.2rem}
+.sucesso p{color:#aaa;font-size:.88rem;line-height:1.6}
+.erro-msg{background:#29141a;border:1px solid #f87171;border-radius:8px;padding:12px 16px;font-size:.82rem;color:#fca5a5;margin-bottom:16px;display:none}
+#loading-state{text-align:center;padding:60px 20px;color:#555}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo">POWER<span>MIND</span></div>
+  <div class="sub">Contrato de Parceria e Uso de Imagem</div>
+
+  <div id="ct-status-badge" style="display:none;margin-bottom:18px;border-radius:10px;padding:14px 18px;align-items:center;gap:12px;font-size:.88rem;font-weight:700"></div>
+
+  <div id="loading-state">Carregando contrato...</div>
+
+  <div id="contrato-wrap" style="display:none">
+    <div class="paper">
+      <!-- Cabeçalho -->
+      <div style="text-align:center;border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:18px">
+        <div style="font-size:1.3rem;font-weight:900;letter-spacing:2px;color:#111">POWERMIND</div>
+        <div style="font-size:.72rem;color:#555;margin-top:2px;letter-spacing:.5px">CONTRATO DE PARCERIA E AUTORIZAÇÃO DE USO DE IMAGEM</div>
+      </div>
+
+      <!-- Cláusula 1 — Identificação -->
+      <div class="secao-titulo" style="margin-bottom:8px">CLÁUSULA 1 — DAS PARTES</div>
+      <p><strong>CONTRATANTE:</strong> PowerMind, marca de suplementos, doravante denominada simplesmente <strong>POWERMIND</strong>.</p>
+      <p id="ct-identif" style="margin-top:6px"></p>
+
+      <!-- Cláusula 2 — Autorização -->
+      <div class="secao">
+        <div class="secao-titulo">CLÁUSULA 2 — DA AUTORIZAÇÃO DE USO DE IMAGEM</div>
+        <p>O(A) CONTRATADO(A) autoriza de forma livre, consciente e voluntária a <strong>POWERMIND</strong> a utilizar sua imagem, voz, nome e conteúdo para divulgação da marca, produtos e ações institucionais.</p>
+        <p>A autorização abrange o uso em:</p>
+        <ul>
+          <li>Feed, Stories e Reels do Instagram</li>
+          <li>Anúncios pagos (Meta Ads / mídia paga)</li>
+          <li>Materiais digitais e institucionais</li>
+          <li>Demais redes sociais acordadas entre as partes</li>
+        </ul>
+        <p>A utilização poderá ocorrer em redes sociais, sites, anúncios e demais meios digitais, no Brasil e no exterior, pelo prazo de <strong>1 (um) ano</strong>, contado a partir da data de assinatura deste instrumento.</p>
+      </div>
+
+      <!-- Cláusula 3 — Acordo de Postagens (RELATÓRIO) -->
+      <div class="secao">
+        <div class="secao-titulo">CLÁUSULA 3 — DO ACORDO DE POSTAGENS</div>
+        <p>As partes acordam as seguintes entregas de conteúdo, conforme pactuado previamente:</p>
+
+        <!-- Redes + Período lado a lado -->
+        <div id="ct-redes-periodo" style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:6px;padding:12px 14px;margin:12px 0">
+          <div id="ct-redes"></div>
+          <div id="ct-periodo"></div>
+          <div id="ct-horario"></div>
+        </div>
+
+        <!-- Tabela de postagens -->
+        <table class="postagens-tabela" id="ct-tabela-postagens" style="margin-top:10px">
+          <thead>
+            <tr>
+              <th>Tipo de Conteúdo</th>
+              <th style="text-align:center">Quantidade</th>
+              <th>Frequência</th>
+              <th style="text-align:center">Total Estimado</th>
+            </tr>
+          </thead>
+          <tbody id="ct-tabela-body"></tbody>
+          <tfoot id="ct-tabela-foot"></tfoot>
+        </table>
+
+        <div id="ct-info-adicional"></div>
+      </div>
+
+      <!-- Cláusula 4 — Obrigações -->
+      <div class="secao">
+        <div class="secao-titulo">CLÁUSULA 4 — DAS OBRIGAÇÕES DO CREATOR</div>
+        <p>O(A) CONTRATADO(A) compromete-se a:</p>
+        <ul>
+          <li>Publicar o conteúdo nas datas e horários previamente combinados com a POWERMIND</li>
+          <li>Mencionar obrigatoriamente a marca <strong>@powermindbr_</strong> em todas as postagens objeto deste contrato</li>
+          <li>Utilizar o cupom exclusivo informado pela POWERMIND sempre que aplicável</li>
+          <li>Manter o conteúdo publicado pelo prazo mínimo de <strong>30 (trinta) dias</strong> a contar de cada publicação</li>
+          <li>Não divulgar marcas concorrentes diretas no mesmo período de vigência deste contrato</li>
+          <li>Enviar relatório de métricas (alcance e engajamento) até 7 dias após cada publicação</li>
+        </ul>
+      </div>
+
+      <!-- Cláusula 5 — Rescisão -->
+      <div class="secao">
+        <div class="secao-titulo">CLÁUSULA 5 — DA RESCISÃO</div>
+        <p>Este contrato poderá ser rescindido por qualquer das partes mediante aviso prévio de <strong>7 (sete) dias</strong>, sem ônus, desde que as obrigações já assumidas sejam integralmente cumpridas.</p>
+      </div>
+
+      <!-- Assinatura das partes -->
+      <div class="secao" style="margin-top:24px">
+        <div style="display:flex;justify-content:space-between;gap:30px;margin-top:8px;align-items:flex-end">
+          <!-- POWERMIND -->
+          <div style="flex:1;text-align:center">
+            <div style="height:60px;border-bottom:1.5px solid #999;margin-bottom:8px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px">
+              <span style="font-size:.7rem;color:#aaa;font-style:italic">Assinatura digital / carimbo</span>
+            </div>
+            <div style="font-size:.75rem;color:#555">
+              <div style="font-weight:700;color:#111">POWERMIND</div>
+              <div>Contratante</div>
+            </div>
+          </div>
+          <!-- CREATOR -->
+          <div style="flex:1;text-align:center">
+            <div style="height:60px;border-bottom:1.5px solid #999;margin-bottom:8px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px">
+              <img id="ct-assinatura-img" src="" alt="Assinatura" style="display:none;max-height:54px;max-width:200px;object-fit:contain">
+              <span id="ct-assinatura-vazia" style="font-size:.7rem;color:#aaa;font-style:italic">Aguardando assinatura</span>
+            </div>
+            <div style="font-size:.75rem;color:#555">
+              <div id="ct-nome-assinatura" style="font-weight:700;color:#111">Creator</div>
+              <div>Contratado(a)</div>
+              <div id="ct-data-assinatura-rodape" style="font-size:.68rem;color:#888;margin-top:2px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Local e data -->
+      <div class="local-data" id="ct-local-data" style="margin-top:18px;text-align:right"></div>
+    </div>
+
+    <!-- Cronograma de postagens -->
+    <div class="paper" id="ct-cronograma-wrap" style="display:none">
+      <div style="text-align:center;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:16px">
+        <div style="font-size:1.1rem;font-weight:900;letter-spacing:2px;color:#111">POWERMIND</div>
+        <div style="font-size:.7rem;color:#555;letter-spacing:.5px;margin-top:2px">ANEXO I — CRONOGRAMA DE POSTAGENS</div>
+      </div>
+
+      <p style="font-size:.82rem;margin-bottom:14px">Este anexo integra o Contrato de Parceria firmado entre as partes e detalha o calendário completo de publicações acordado, com datas, tipos de conteúdo e horários previstos.</p>
+
+      <table class="postagens-tabela" id="ct-cronograma-tabela">
+        <thead>
+          <tr>
+            <th style="width:36px">#</th>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Horário</th>
+            <th>Observação</th>
+          </tr>
+        </thead>
+        <tbody id="ct-cronograma-body"></tbody>
+      </table>
+
+      <div id="ct-cronograma-obs" style="display:none;margin-top:14px;padding:10px 14px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:4px;font-size:.82rem;color:#333"></div>
+
+      <div style="margin-top:24px;display:flex;justify-content:space-between;gap:30px;align-items:flex-end">
+        <div style="flex:1;text-align:center">
+          <div style="height:60px;border-bottom:1.5px solid #999;margin-bottom:8px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px">
+            <span style="font-size:.7rem;color:#aaa;font-style:italic">Assinatura digital / carimbo</span>
+          </div>
+          <div style="font-size:.75rem;color:#555"><div style="font-weight:700;color:#111">POWERMIND</div><div>Contratante</div></div>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div style="height:60px;border-bottom:1.5px solid #999;margin-bottom:8px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px">
+            <img id="ct-cron-assinatura-img" src="" alt="" style="display:none;max-height:54px;max-width:200px;object-fit:contain">
+            <span id="ct-cron-assinatura-vazia" style="font-size:.7rem;color:#aaa;font-style:italic">Aguardando assinatura</span>
+          </div>
+          <div style="font-size:.75rem;color:#555">
+            <div id="ct-cron-nome" style="font-weight:700;color:#111">Creator</div><div>Contratado(a)</div>
+            <div id="ct-cron-data-rodape" style="font-size:.68rem;color:#888;margin-top:2px"></div>
+          </div>
+        </div>
+      </div>
+      <div id="ct-cron-data" style="margin-top:14px;font-size:.78rem;color:#888;font-style:italic;text-align:right"></div>
+    </div>
+
+    <div class="erro-msg" id="erro-msg"></div>
+
+    <div class="sign-section">
+      <span class="sign-label">✍️ Assine com o dedo no campo abaixo para confirmar o acordo e o cronograma</span>
+      <div class="canvas-wrap">
+        <canvas id="sig-canvas" height="160"></canvas>
+      </div>
+      <button class="btn-clear" onclick="limparCanvas()">Limpar assinatura</button>
+    </div>
+
+    <button class="btn-assinar" id="btn-assinar" onclick="enviarContrato()">ASSINAR E CONFIRMAR CONTRATO</button>
+  </div>
+
+  <div class="sucesso" id="sucesso">
+    <div class="icon">✅</div>
+    <h2>Contrato assinado com sucesso!</h2>
+    <p>A PowerMind agradece sua parceria.<br>Seu contrato foi registrado e salvo no arquivo da equipe.</p>
+    <button onclick="baixarContratoPDF()" style="background:#1e3a5f;border:1px solid #3b82f6;color:#60a5fa;border-radius:8px;padding:12px 24px;font-size:.88rem;font-weight:700;cursor:pointer;margin-top:4px">
+      📥 Baixar contrato em PDF
+    </button>
+  </div>
+</div>
+
+<script>
+var dadosCreator = {};
+var hasSignature = false;
+
+function getParam(name){
+  return new URL(window.location.href).searchParams.get(name) || '';
+}
+
+function dataHoje(){
+  var d = new Date();
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+function dataExibicao(){
+  var d = new Date();
+  var meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  return d.getDate()+' de '+meses[d.getMonth()]+' de '+d.getFullYear();
+}
+
+function formatarDataISO(iso){
+  if(!iso) return '—';
+  var p = iso.split('-');
+  return p[2]+'/'+p[1]+'/'+p[0];
+}
+
+var freqLabel = {diario:'Diário',semanal:'Semanal',mensal:'Mensal',total:'Aleatório no período',nenhum:'—'};
+
+async function inicializar(){
+  var u = getParam('u');
+  if(!u){
+    document.getElementById('loading-state').textContent = 'Link inválido. Solicite um novo link ao time PowerMind.';
+    return;
+  }
+  try{
+    var r    = await fetch('/api/creator/public?u='+encodeURIComponent(u));
+    var data = await r.json();
+    dadosCreator = data;
+
+    // Identificação
+    // Badge de status do contrato
+    var badge = document.getElementById('ct-status-badge');
+    if(data.contrato_assinado){
+      badge.style.cssText = 'display:flex;margin-bottom:18px;border-radius:10px;padding:14px 18px;align-items:center;gap:12px;font-size:.88rem;font-weight:700;background:#052e16;border:1.5px solid #16a34a;color:#4ade80';
+      badge.innerHTML = '<span style="font-size:1.5rem">✅</span>'
+        +'<div><div style="font-size:1rem">Contrato Assinado</div>'
+        +'<div style="font-weight:400;font-size:.78rem;color:#86efac;margin-top:2px">Assinado em: '+(data.contrato_assinado_em||'—')+'</div></div>';
+      // Esconder área de assinatura e bloquear botão
+      document.querySelector('.sign-section').style.display = 'none';
+      var btn = document.getElementById('btn-assinar');
+      if(btn){ btn.style.display = 'none'; }
+    } else {
+      badge.style.cssText = 'display:flex;margin-bottom:18px;border-radius:10px;padding:14px 18px;align-items:center;gap:12px;font-size:.88rem;font-weight:700;background:#1c1106;border:1.5px solid #d97706;color:#fbbf24';
+      badge.innerHTML = '<span style="font-size:1.5rem">⏳</span>'
+        +'<div><div style="font-size:1rem">Aguardando Assinatura</div>'
+        +'<div style="font-weight:400;font-size:.78rem;color:#fde68a;margin-top:2px">Leia o contrato abaixo e assine ao final para confirmar</div></div>';
+    }
+
+    // Identificação
+    var pId = document.getElementById('ct-identif');
+    pId.innerHTML = '<strong>CONTRATADO(A):</strong> <strong>'+(data.nome||u)+'</strong>'
+      +(data.cpf ? ', CPF nº <strong>'+data.cpf+'</strong>' : '')
+      +(data.cidade ? ', residente em <strong>'+data.cidade+'</strong>' : '')
+      +', doravante denominado(a) simplesmente <strong>CREATOR</strong>.';
+
+    // Nome no rodapé de assinatura
+    var nomeAssin = document.getElementById('ct-nome-assinatura');
+    if(nomeAssin) nomeAssin.textContent = data.nome || 'Creator';
+    var nomeAssin2 = document.getElementById('ct-cron-nome');
+    if(nomeAssin2) nomeAssin2.textContent = data.nome || 'Creator';
+
+    // Assinatura digital — exibir nos dois documentos
+    if(data.assinatura_base64 && data.contrato_assinado){
+      ['ct-assinatura-img','ct-cron-assinatura-img'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el){ el.src = data.assinatura_base64; el.style.display = 'block'; }
+      });
+      ['ct-assinatura-vazia','ct-cron-assinatura-vazia'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.style.display = 'none';
+      });
+      ['ct-data-assinatura-rodape','ct-cron-data-rodape'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.textContent = 'Assinado digitalmente em: ' + (data.contrato_assinado_em||'');
+      });
+    }
+
+    // Acordo
+    var ac = data.acordo || {};
+    preencherAcordo(ac, data.cidade);
+    gerarCronograma(ac, data.nome || u);
+
+    // Local e data
+    document.getElementById('ct-local-data').textContent = (data.cidade||'Brasil')+', '+dataExibicao();
+
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('contrato-wrap').style.display = 'block';
+    inicializarCanvas();
+  } catch(e){
+    document.getElementById('loading-state').textContent = 'Erro ao carregar contrato. Tente novamente.';
+  }
+}
+
+function isoParaData(iso){
+  if(!iso) return null;
+  var p = iso.split('-');
+  return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+}
+
+function fmtData(d){
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+}
+
+function diaSemana(d){
+  return ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()];
+}
+
+function gerarCronograma(ac, nome){
+  var inicio = ac.inicio, fim = ac.fim, hora = ac.hora || '—';
+  if(!inicio){ document.getElementById('ct-cronograma-wrap').style.display='none'; return; }
+
+  var freqDias = {diario:1, semanal:7, mensal:30};
+  var grupos = [
+    {tipo:'Reels',   icon:'🎬', qtd: parseInt(ac.qtd_reels)||0,   freq: ac.freq_reels},
+    {tipo:'Stories', icon:'📲', qtd: parseInt(ac.qtd_stories)||0, freq: ac.freq_stories},
+    {tipo:'Feed',    icon:'🖼️', qtd: parseInt(ac.qtd_feed)||0,    freq: ac.freq_feed},
+  ];
+
+  var base   = isoParaData(inicio);
+  var fimDt  = fim ? isoParaData(fim) : null;
+  var duracao = fimDt ? Math.round((fimDt - base) / 86400000) : 90;
+  var todasDatas = [];
+
+  grupos.forEach(function(g){
+    if(!g.qtd || g.freq === 'nenhum' || !g.freq) return;
+    var intervalo = freqDias[g.freq];
+    for(var i = 0; i < g.qtd; i++){
+      var d;
+      if(intervalo){
+        d = new Date(base.getTime() + i * intervalo * 86400000);
+      } else {
+        // Aleatório
+        var fator = duracao > 1 ? Math.floor(duracao / g.qtd) : 1;
+        var offset = i * fator + Math.floor(Math.random() * Math.max(1, Math.floor(fator * 0.4)));
+        d = new Date(base.getTime() + offset * 86400000);
+      }
+      todasDatas.push({d:d, tipo:g.tipo, icon:g.icon});
+    }
+  });
+
+  if(!todasDatas.length){ document.getElementById('ct-cronograma-wrap').style.display='none'; return; }
+
+  todasDatas.sort(function(a,b){ return a.d - b.d; });
+
+  var tbody = document.getElementById('ct-cronograma-body');
+  tbody.innerHTML = '';
+  todasDatas.forEach(function(item, i){
+    var tr = document.createElement('tr');
+    var obs = (i === 0) ? 'Primeira postagem' : (i === todasDatas.length-1) ? 'Última postagem' : '';
+    tr.innerHTML = '<td style="text-align:center;color:#888;font-weight:700">'+(i+1)+'</td>'
+      +'<td><strong>'+fmtData(item.d)+'</strong> <span style="color:#888;font-size:.75rem">('+diaSemana(item.d)+')</span></td>'
+      +'<td>'+item.icon+' '+item.tipo+'</td>'
+      +'<td style="text-align:center"><strong>'+hora+'</strong></td>'
+      +'<td style="font-size:.76rem;color:#888">'+obs+'</td>';
+    tbody.appendChild(tr);
+  });
+
+  // Observações do acordo
+  if(ac.info_adicional){
+    var obsEl = document.getElementById('ct-cronograma-obs');
+    obsEl.innerHTML = '<strong>📝 Observações do acordo:</strong><br>'+ac.info_adicional.replace(/\n/g,'<br>');
+    obsEl.style.display = 'block';
+  }
+
+  // Nome e data no anexo
+  var nomeEl = document.getElementById('ct-cron-nome');
+  if(nomeEl) nomeEl.textContent = nome || 'Creator';
+  var dataEl = document.getElementById('ct-cron-data');
+  if(dataEl) dataEl.textContent = 'Total: '+todasDatas.length+' postagens · '+dataExibicao();
+
+  document.getElementById('ct-cronograma-wrap').style.display = 'block';
+}
+
+function calcularTotalPeriodo(qtd, freq, inicio, fim){
+  if(!qtd || freq === 'nenhum') return 0;
+  if(freq === 'total') return qtd;
+  if(!inicio || !fim) return qtd;
+  var dias = Math.round((new Date(fim) - new Date(inicio)) / 86400000);
+  if(dias <= 0) return qtd;
+  var intervalo = {diario:1, semanal:7, mensal:30}[freq] || 1;
+  var semanas = Math.ceil(dias / intervalo);
+  return semanas * qtd;
+}
+
+function preencherAcordo(ac, cidade){
+  // Redes sociais
+  var redesEl = document.getElementById('ct-redes');
+  if(ac.redes){
+    var nomes = {instagram:'Instagram',facebook:'Facebook',tiktok:'TikTok'};
+    var lista = ac.redes.split(',').filter(Boolean).map(function(r){ return nomes[r]||r; }).join(' · ');
+    redesEl.innerHTML = '<div class="acordo-linha"><span class="acordo-label">Redes sociais:</span><span class="acordo-valor"><strong>'+lista+'</strong></span></div>';
+  }
+
+  // Período
+  var periodoEl = document.getElementById('ct-periodo');
+  if(ac.inicio || ac.fim){
+    periodoEl.innerHTML = '<div class="acordo-linha"><span class="acordo-label">Período:</span><span class="acordo-valor"><strong>'+formatarDataISO(ac.inicio)+'</strong> a <strong>'+formatarDataISO(ac.fim)+'</strong></span></div>';
+  }
+
+  // Horário
+  if(ac.hora){
+    document.getElementById('ct-horario').innerHTML = '<div class="acordo-linha"><span class="acordo-label">Horário combinado:</span><span class="acordo-valor"><strong>'+ac.hora+'</strong></span></div>';
+  }
+
+  // Tabela de postagens
+  var tipos = [
+    {label:'Reels',   icon:'🎬', qtd: ac.qtd_reels,   freq: ac.freq_reels},
+    {label:'Stories', icon:'📲', qtd: ac.qtd_stories, freq: ac.freq_stories},
+    {label:'Feed',    icon:'🖼️', qtd: ac.qtd_feed,    freq: ac.freq_feed},
+  ];
+  var tbody = document.getElementById('ct-tabela-body');
+  var tfoot = document.getElementById('ct-tabela-foot');
+  tbody.innerHTML = ''; tfoot.innerHTML = '';
+  var temDados = false;
+  var totalGeral = 0;
+  tipos.forEach(function(t){
+    var q = parseInt(t.qtd)||0;
+    if(!q || t.freq === 'nenhum') return;
+    temDados = true;
+    var total = calcularTotalPeriodo(q, t.freq, ac.inicio, ac.fim);
+    totalGeral += total;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+t.icon+' '+t.label+'</td>'
+      +'<td style="text-align:center;font-weight:700">'+q+'</td>'
+      +'<td>'+(freqLabel[t.freq]||t.freq||'—')+'</td>'
+      +'<td style="text-align:center;font-weight:700;color:#1a1a1a">'+total+'</td>';
+    tbody.appendChild(tr);
+  });
+  if(temDados){
+    tfoot.innerHTML = '<tr style="background:#f0f0f0"><td colspan="3" style="font-weight:800;text-align:right;padding:6px 10px">TOTAL DE POSTAGENS NO PERÍODO:</td><td style="text-align:center;font-weight:900;font-size:.95rem">'+totalGeral+'</td></tr>';
+  } else {
+    document.getElementById('ct-tabela-postagens').style.display = 'none';
+  }
+
+  // Info adicional
+  if(ac.info_adicional){
+    document.getElementById('ct-info-adicional').innerHTML = '<div style="margin-top:12px;padding:10px 14px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:4px;font-size:.82rem;color:#333"><strong>📝 Observações do acordo:</strong><br>'+ac.info_adicional.replace(/\n/g,'<br>')+'</div>';
+  }
+}
+
+function inicializarCanvas(){
+  var canvas = document.getElementById('sig-canvas');
+  var wrap   = canvas.parentElement;
+  canvas.width  = wrap.offsetWidth || 480;
+  canvas.height = 160;
+  var ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  var drawing = false;
+  function getPos(e){
+    var rect = canvas.getBoundingClientRect();
+    var sx = canvas.width/rect.width, sy = canvas.height/rect.height;
+    if(e.touches) return {x:(e.touches[0].clientX-rect.left)*sx, y:(e.touches[0].clientY-rect.top)*sy};
+    return {x:(e.clientX-rect.left)*sx, y:(e.clientY-rect.top)*sy};
+  }
+  function start(e){ e.preventDefault(); drawing=true; var p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }
+  function move(e){ if(!drawing) return; e.preventDefault(); var p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); hasSignature=true; }
+  function stop(){ drawing=false; }
+  canvas.addEventListener('touchstart',start,{passive:false});
+  canvas.addEventListener('touchmove',move,{passive:false});
+  canvas.addEventListener('touchend',stop,{passive:false});
+  canvas.addEventListener('mousedown',start);
+  canvas.addEventListener('mousemove',move);
+  canvas.addEventListener('mouseup',stop);
+  canvas.addEventListener('mouseleave',stop);
+}
+
+function limparCanvas(){
+  var c = document.getElementById('sig-canvas');
+  c.getContext('2d').clearRect(0,0,c.width,c.height);
+  hasSignature = false;
+}
+
+function baixarContratoPDF(){
+  // Garante que o conteúdo esteja visível antes de imprimir
+  var wrap = document.getElementById('contrato-wrap');
+  var sucesso = document.getElementById('sucesso');
+  var statusBadge = document.getElementById('ct-status-badge');
+
+  // Mostrar temporariamente o wrap (escondendo o form de assinatura)
+  if(wrap) wrap.style.display = 'block';
+  if(sucesso) sucesso.style.display = 'none';
+  if(statusBadge) statusBadge.style.display = 'none';
+
+  setTimeout(function(){
+    window.print();
+    // Restaurar após impressão
+    setTimeout(function(){
+      if(wrap) wrap.style.display = 'none';
+      if(sucesso) sucesso.style.display = 'flex';
+      if(statusBadge) statusBadge.style.display = 'flex';
+    }, 500);
+  }, 200);
+}
+
+async function enviarContrato(){
+  var errEl = document.getElementById('erro-msg');
+  errEl.style.display = 'none';
+  if(!dadosCreator.nome){ errEl.textContent='Não foi possível identificar o creator.'; errEl.style.display='block'; return; }
+  if(!hasSignature){ errEl.textContent='Por favor, assine no campo acima antes de confirmar.'; errEl.style.display='block'; return; }
+
+  var canvas = document.getElementById('sig-canvas');
+  var btn = document.getElementById('btn-assinar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span>Enviando...';
+
+  try{
+    var r = await fetch('/api/creator/contrato-assinar',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        username: dadosCreator.username,
+        assinatura_base64: canvas.toDataURL('image/png'),
+        nome: dadosCreator.nome,
+        cpf:  dadosCreator.cpf||'',
+        cidade: dadosCreator.cidade||'Brasil',
+        data_assinatura: dataHoje()
+      })
+    });
+    var res = await r.json();
+    if(res.ok){
+      document.getElementById('contrato-wrap').style.display = 'none';
+      document.getElementById('sucesso').style.display = 'flex';
+    } else throw new Error('erro');
+  } catch(e){
+    errEl.textContent = 'Erro ao enviar. Verifique sua conexão e tente novamente.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'ASSINAR E CONFIRMAR CONTRATO';
+  }
+}
+
+inicializar().then(function(){
+  if(getParam('print')==='1'){
+    setTimeout(function(){ baixarContratoPDF(); }, 1000);
+  }
+});
+</script>
+</body>
+</html>

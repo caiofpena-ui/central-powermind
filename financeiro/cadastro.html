@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>PowerMind — Cadastro de Creator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px 40px;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .logo-text {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #3b82f6;
+    }
+
+    .logo-sub {
+      font-size: 11px;
+      color: #6b7280;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .greeting {
+      text-align: center;
+      margin-bottom: 24px;
+      padding: 20px;
+      background: #1a1d27;
+      border-radius: 12px;
+      border: 1px solid #2d3148;
+    }
+
+    .creator-photo {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin: 0 auto 12px;
+      display: block;
+      border: 2px solid #3b82f6;
+      background: #2d3148;
+    }
+
+    .creator-photo-placeholder {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #2d3148;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      border: 2px solid #3b82f6;
+    }
+
+    .greeting h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 6px;
+    }
+
+    .greeting p {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: #1a1d27;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      border: 1px solid #2d3148;
+    }
+
+    .section-title {
+      color: #3b82f6;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 6px;
+    }
+
+    label .required {
+      color: #ef4444;
+      margin-left: 2px;
+    }
+
+    input, select {
+      width: 100%;
+      background: #0f1117;
+      border: 1px solid #3d4060;
+      color: #e2e8f0;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      background: #131620;
+    }
+
+    input::placeholder {
+      color: #4b5563;
+    }
+
+    input.error {
+      border-color: #ef4444;
+    }
+
+    .cep-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .cep-group input {
+      flex: 1;
+    }
+
+    .btn-cep {
+      background: #2d3148;
+      border: 1px solid #3d4060;
+      color: #94a3b8;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 18px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-cep:hover {
+      background: #3d4060;
+      color: #e2e8f0;
+    }
+
+    .cep-status {
+      font-size: 12px;
+      margin-top: 6px;
+      min-height: 16px;
+    }
+
+    .cep-status.ok { color: #22c55e; }
+    .cep-status.err { color: #ef4444; }
+    .cep-status.loading { color: #f59e0b; }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: background 0.2s, opacity 0.2s;
+      margin-top: 4px;
+    }
+
+    .btn-submit:hover { background: #2563eb; }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .footer-note {
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 16px;
+      line-height: 1.5;
+    }
+
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .success-icon {
+      font-size: 72px;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    .success-screen h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #22c55e;
+      margin-bottom: 10px;
+    }
+
+    .success-screen .success-msg {
+      font-size: 15px;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .success-screen .whatsapp-btn {
+      display: inline-block;
+      margin-top: 24px;
+      background: #25d366;
+      color: white;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .error-banner {
+      background: #2d1515;
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="logo">
+    <div class="logo-text">POWER MIND</div>
+    <div class="logo-sub">Energia · Foco · Memória</div>
+  </div>
+
+  <div id="form-section">
+
+    <div class="greeting" id="greeting">
+      <div class="creator-photo-placeholder" id="photo-placeholder">🧠</div>
+      <img id="creator-photo" class="creator-photo" style="display:none" alt="Foto do creator">
+      <h2 id="greeting-title">Olá! 👋</h2>
+      <p>Precisamos de alguns dados para enviar seu produto PowerMind.</p>
+    </div>
+
+    <div class="error-banner" id="error-banner"></div>
+
+    <div class="card">
+      <div class="section-title">📋 Dados Pessoais</div>
+
+      <div class="form-group">
+        <label>CPF <span class="required">*</span></label>
+        <input type="tel" id="cpf" placeholder="000.000.000-00" maxlength="14" inputmode="numeric">
+      </div>
+
+      <div class="form-group">
+        <label>WhatsApp <span class="required">*</span></label>
+        <input type="tel" id="telefone" placeholder="(11) 99999-9999" maxlength="15" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">📦 Endereço de Entrega</div>
+
+      <div class="form-group">
+        <label>CEP <span class="required">*</span></label>
+        <div class="cep-group">
+          <input type="tel" id="cep" placeholder="00000-000" maxlength="9" inputmode="numeric">
+          <button class="btn-cep" id="btn-cep" onclick="buscarCEP()" title="Buscar CEP">🔍</button>
+        </div>
+        <div class="cep-status" id="cep-status"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Rua / Avenida <span class="required">*</span></label>
+        <input type="text" id="rua" placeholder="Nome da rua">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Número <span class="required">*</span></label>
+          <input type="text" id="numero" placeholder="Ex: 123" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label>Complemento</label>
+          <input type="text" id="complemento" placeholder="Apto, Bloco...">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Bairro <span class="required">*</span></label>
+        <input type="text" id="bairro" placeholder="Bairro">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" style="flex:2">
+          <label>Cidade <span class="required">*</span></label>
+          <input type="text" id="cidade" placeholder="Cidade">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>Estado</label>
+          <select id="estado">
+            <option value="">UF</option>
+            <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+            <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+            <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+            <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+            <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+            <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+            <option>SP</option><option>SE</option><option>TO</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="btn-submit" onclick="submitForm()">
+      ✅ CONFIRMAR DADOS
+    </button>
+
+    <p class="footer-note">
+      🔒 Seus dados são usados apenas para envio do produto PowerMind.<br>
+      Não compartilhamos suas informações com terceiros.
+    </p>
+  </div>
+
+  <div class="success-screen" id="success-screen">
+    <span class="success-icon">✅</span>
+    <h2>Dados recebidos!</h2>
+    <p class="success-msg" id="success-name">Obrigado!</p>
+    <p class="success-msg">Seu produto PowerMind será enviado em breve.</p>
+    <p class="success-msg">Qualquer dúvida, fale com a gente no WhatsApp.</p>
+    <a href="https://wa.me/5511999999999" class="whatsapp-btn" target="_blank" rel="noopener noreferrer">
+      💬 Falar no WhatsApp
+    </a>
+  </div>
+
+</div>
+
+<script>
+  const API = window.location.origin;
+  let creatorUsername = "";
+
+  function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name) || "";
+  }
+
+  // ── Máscaras ──────────────────────────────────────────────────────────────
+
+  function maskCPF(v) {
+    v = v.replace(/\D/g, "").slice(0, 11);
+    if (v.length > 9)      v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, "$1.$2.$3-$4");
+    else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, "$1.$2.$3");
+    else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,3})/, "$1.$2");
+    return v;
+  }
+
+  function maskPhone(v) {
+    v = v.replace(/\D/g, "").slice(0, 11);
+    if (v.length > 10)     v = v.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+    else if (v.length > 6) v = v.replace(/(\d{2})(\d{4,5})(\d{0,4})/, "($1) $2-$3");
+    else if (v.length > 2) v = v.replace(/(\d{2})(\d{0,5})/, "($1) $2");
+    else if (v.length > 0) v = v.replace(/(\d{0,2})/, "($1");
+    return v;
+  }
+
+  function maskCEP(v) {
+    v = v.replace(/\D/g, "").slice(0, 8);
+    if (v.length > 5) v = v.replace(/(\d{5})(\d{0,3})/, "$1-$2");
+    return v;
+  }
+
+  document.getElementById("cpf").addEventListener("input", function() {
+    this.value = maskCPF(this.value);
+  });
+  document.getElementById("telefone").addEventListener("input", function() {
+    this.value = maskPhone(this.value);
+  });
+  document.getElementById("cep").addEventListener("input", function() {
+    this.value = maskCEP(this.value);
+    const st = document.getElementById("cep-status");
+    st.textContent = "";
+    st.className = "cep-status";
+  });
+  document.getElementById("cep").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") { e.preventDefault(); buscarCEP(); }
+  });
+
+  // ── Busca CEP ─────────────────────────────────────────────────────────────
+
+  async function buscarCEP() {
+    const cep = document.getElementById("cep").value.replace(/\D/g, "");
+    const status = document.getElementById("cep-status");
+    if (cep.length !== 8) {
+      status.textContent = "CEP invalido — informe 8 digitos.";
+      status.className = "cep-status err";
+      return;
+    }
+    status.textContent = "Buscando...";
+    status.className = "cep-status loading";
+    try {
+      const r = await fetch("https://viacep.com.br/ws/" + cep + "/json/");
+      const d = await r.json();
+      if (d.erro) {
+        status.textContent = "CEP nao encontrado.";
+        status.className = "cep-status err";
+        return;
+      }
+      document.getElementById("rua").value    = d.logradouro || "";
+      document.getElementById("bairro").value = d.bairro     || "";
+      document.getElementById("cidade").value = d.localidade || "";
+      const sel = document.getElementById("estado");
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === d.uf) { sel.value = d.uf; break; }
+      }
+      status.textContent = "Endereco preenchido automaticamente!";
+      status.className = "cep-status ok";
+      document.getElementById("numero").focus();
+    } catch (e) {
+      status.textContent = "Erro ao buscar CEP. Preencha manualmente.";
+      status.className = "cep-status err";
+    }
+  }
+
+  // ── Carregar creator ──────────────────────────────────────────────────────
+
+  async function loadCreator() {
+    const u = getParam("u");
+    if (!u) return;
+    creatorUsername = u;
+    try {
+      const r = await fetch(API + "/api/creator/public?u=" + encodeURIComponent(u));
+      const d = await r.json();
+      if (d.nome) {
+        var firstName = d.nome.split(" ")[0];
+        document.getElementById("greeting-title").textContent = "Ola, " + firstName + "! 👋";
+        document.getElementById("success-name").textContent = "Obrigado, " + firstName + "!";
+      }
+      if (d.foto) {
+        var img = document.getElementById("creator-photo");
+        img.src = d.foto;
+        img.style.display = "block";
+        document.getElementById("photo-placeholder").style.display = "none";
+        img.onerror = function() {
+          this.style.display = "none";
+          document.getElementById("photo-placeholder").style.display = "flex";
+        };
+      }
+    } catch (e) {
+      // formulario generico continua visivel
+    }
+  }
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+
+  function showError(msg) {
+    var el = document.getElementById("error-banner");
+    el.textContent = msg;
+    el.style.display = "block";
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function clearError() {
+    var el = document.getElementById("error-banner");
+    el.style.display = "none";
+    el.textContent = "";
+  }
+
+  function val(id) { return document.getElementById(id).value.trim(); }
+
+  async function submitForm() {
+    clearError();
+
+    var cpf         = val("cpf");
+    var telefone    = val("telefone");
+    var cep         = val("cep");
+    var rua         = val("rua");
+    var numero      = val("numero");
+    var complemento = val("complemento");
+    var bairro      = val("bairro");
+    var cidade      = val("cidade");
+    var estado      = val("estado");
+
+    if (cpf.replace(/\D/g, "").length < 11) {
+      showError("Por favor, informe um CPF valido (11 digitos)."); return;
+    }
+    if (telefone.replace(/\D/g, "").length < 10) {
+      showError("Por favor, informe um WhatsApp valido."); return;
+    }
+    if (!rua) {
+      showError("Por favor, informe a rua/avenida."); return;
+    }
+    if (!numero) {
+      showError("Por favor, informe o numero."); return;
+    }
+    if (!cidade) {
+      showError("Por favor, informe a cidade."); return;
+    }
+    if (!estado) {
+      showError("Por favor, selecione o estado."); return;
+    }
+
+    var btn = document.getElementById("btn-submit");
+    btn.disabled = true;
+    btn.textContent = "Salvando...";
+
+    var body = {
+      username: creatorUsername || getParam("u") || "",
+      cpf: cpf,
+      telefone: telefone,
+      cep: cep,
+      rua: rua,
+      numero: numero,
+      complemento: complemento,
+      bairro: bairro,
+      cidade: cidade,
+      estado: estado
+    };
+
+    try {
+      var r = await fetch(API + "/api/creator/dados-envio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      var d = await r.json();
+      if (d.ok) {
+        document.getElementById("form-section").style.display = "none";
+        document.getElementById("success-screen").style.display = "block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        showError("Erro ao salvar os dados. Tente novamente.");
+        btn.disabled = false;
+        btn.textContent = "CONFIRMAR DADOS";
+      }
+    } catch (e) {
+      showError("Erro de conexao. Verifique sua internet e tente novamente.");
+      btn.disabled = false;
+      btn.textContent = "CONFIRMAR DADOS";
+    }
+  }
+
+  loadCreator();
+</script>
+</body>
+</html>

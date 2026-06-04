@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Ficha de Dados — PowerMind</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0f1117;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 40px}
+.logo{font-size:1.4rem;font-weight:900;color:#fff;letter-spacing:1px;margin-bottom:4px;text-align:center}
+.logo span{color:#3b82f6}
+.sub{font-size:.78rem;color:#888;margin-bottom:24px;text-align:center}
+.container{width:100%;max-width:520px}
+.card{background:#161923;border:1px solid #2a2d3e;border-radius:12px;padding:22px 20px;margin-bottom:16px}
+.card-title{font-size:.72rem;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#3b82f6;margin-bottom:16px}
+.form-group{margin-bottom:14px}
+label{display:block;font-size:.75rem;color:#9ca3af;font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+input,select{width:100%;background:#0f1117;border:1px solid #2a2d3e;border-radius:8px;color:#e0e0e0;padding:10px 12px;font-size:.88rem;outline:none;transition:border .2s}
+input:focus,select:focus{border-color:#3b82f6}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-buscar{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;height:40px;align-self:end}
+.btn-enviar{width:100%;background:#059669;color:#fff;border:none;border-radius:10px;padding:16px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px}
+.btn-enviar:disabled{opacity:.5;cursor:not-allowed}
+.loader{display:inline-block;width:16px;height:16px;border:2px solid #ffffff40;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sucesso{display:none;flex-direction:column;align-items:center;text-align:center;gap:16px;background:#1a1d27;border:1px solid #059669;border-radius:12px;padding:40px 24px}
+.sucesso .icon{font-size:3rem}
+.sucesso h2{color:#4ade80;font-size:1.2rem}
+.sucesso p{color:#aaa;font-size:.88rem;line-height:1.6}
+.erro-msg{background:#29141a;border:1px solid #f87171;border-radius:8px;padding:12px 16px;font-size:.82rem;color:#fca5a5;margin-bottom:16px;display:none}
+#loading-state{text-align:center;padding:60px 20px;color:#555}
+.hint{font-size:.72rem;color:#6b7280;margin-top:4px}
+.boas-vindas{background:#1a1d27;border:1px solid #3b82f640;border-radius:10px;padding:14px 16px;margin-bottom:18px;display:none;align-items:center;gap:14px}
+.boas-vindas img{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid #3b82f6}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">POWER<span>MIND</span></div>
+  <div class="sub">Ficha de Dados para Envio de Produto</div>
+
+  <div id="loading-state">Carregando...</div>
+
+  <div id="ficha-wrap" style="display:none">
+    <div class="boas-vindas" id="boas-vindas">
+      <img id="bv-foto" src="" alt="">
+      <div>
+        <div id="bv-nome" style="font-weight:700;font-size:.95rem"></div>
+        <div id="bv-user" style="font-size:.78rem;color:#6b7280"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;border-color:#3b82f640">
+      <div style="font-size:.88rem;line-height:1.7;color:#ccc">
+        Ola! Para enviarmos seu produto PowerMind, precisamos de algumas informacoes pessoais.<br>
+        <span style="color:#9ca3af;font-size:.8rem">Preencha com atencao - o produto sera enviado direto para o endereco abaixo.</span>
+      </div>
+    </div>
+
+    <div class="erro-msg" id="erro-msg"></div>
+
+    <div class="card">
+      <div class="card-title">Dados Pessoais</div>
+      <div class="row">
+        <div class="form-group">
+          <label>CPF *</label>
+          <input type="text" id="f-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascararCPF(this)">
+          <div class="hint">Para nota fiscal</div>
+        </div>
+        <div class="form-group">
+          <label>WhatsApp *</label>
+          <input type="text" id="f-telefone" placeholder="(11) 99999-9999" maxlength="15" oninput="mascararTel(this)">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Endereco de Entrega</div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:14px">
+        <div class="form-group" style="margin-bottom:0">
+          <label>CEP *</label>
+          <input type="text" id="f-cep" placeholder="00000-000" maxlength="9" oninput="mascararCEP(this)">
+        </div>
+        <button class="btn-buscar" onclick="buscarCEP()">Buscar</button>
+      </div>
+      <div class="form-group">
+        <label>Rua / Avenida *</label>
+        <input type="text" id="f-rua" placeholder="Nome da rua">
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>Numero *</label>
+          <input type="text" id="f-numero" placeholder="000">
+        </div>
+        <div class="form-group">
+          <label>Complemento</label>
+          <input type="text" id="f-complemento" placeholder="Apto, bloco...">
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>Bairro *</label>
+          <input type="text" id="f-bairro" placeholder="Bairro">
+        </div>
+        <div class="form-group">
+          <label>Cidade *</label>
+          <input type="text" id="f-cidade" placeholder="Cidade">
+        </div>
+      </div>
+      <div class="form-group" style="max-width:140px">
+        <label>Estado *</label>
+        <select id="f-estado">
+          <option value="">UF</option>
+          <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+          <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+          <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+          <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+          <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+          <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+          <option selected>SP</option><option>SE</option><option>TO</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-enviar" id="btn-enviar" onclick="enviarFicha()">ENVIAR MEUS DADOS</button>
+  </div>
+
+  <div class="sucesso" id="sucesso">
+    <div class="icon">&#127881;</div>
+    <h2>Dados enviados com sucesso!</h2>
+    <p>A equipe PowerMind ja recebeu seus dados e ira preparar o envio do seu produto em breve.<br><br>
+    Fique atento ao seu WhatsApp para o codigo de rastreio!</p>
+  </div>
+</div>
+
+<script>
+var creatorUsername = '';
+function getParam(n){ return new URL(location.href).searchParams.get(n)||''; }
+function mascararCPF(el){
+  var v=el.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>9) v=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6,9)+'-'+v.slice(9);
+  else if(v.length>6) v=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6);
+  else if(v.length>3) v=v.slice(0,3)+'.'+v.slice(3);
+  el.value=v;
+}
+function mascararTel(el){
+  var v=el.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>10) v='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
+  else if(v.length>6) v='('+v.slice(0,2)+') '+v.slice(2,6)+'-'+v.slice(6);
+  else if(v.length>2) v='('+v.slice(0,2)+') '+v.slice(2);
+  el.value=v;
+}
+function mascararCEP(el){
+  var v=el.value.replace(/\D/g,'').slice(0,8);
+  if(v.length>5) v=v.slice(0,5)+'-'+v.slice(5);
+  el.value=v;
+}
+async function buscarCEP(){
+  var cep=document.getElementById('f-cep').value.replace(/\D/g,'');
+  if(cep.length!==8){alert('CEP invalido.');return;}
+  try{
+    var r=await fetch('https://viacep.com.br/ws/'+cep+'/json/');
+    var d=await r.json();
+    if(d.erro){alert('CEP nao encontrado.');return;}
+    document.getElementById('f-rua').value=d.logradouro||'';
+    document.getElementById('f-bairro').value=d.bairro||'';
+    document.getElementById('f-cidade').value=d.localidade||'';
+    document.getElementById('f-estado').value=d.uf||'SP';
+    document.getElementById('f-numero').focus();
+  }catch(e){alert('Erro ao buscar CEP.');}
+}
+async function inicializar(){
+  var u=getParam('u');
+  if(!u){document.getElementById('loading-state').textContent='Link invalido.';return;}
+  try{
+    var r=await fetch('/api/creator/public?u='+encodeURIComponent(u));
+    var d=await r.json();
+    creatorUsername=d.username||u;
+    var bv=document.getElementById('boas-vindas');
+    document.getElementById('bv-nome').textContent=d.nome||u;
+    document.getElementById('bv-user').textContent=d.username||'';
+    if(d.foto) document.getElementById('bv-foto').src=d.foto;
+    bv.style.display='flex';
+    if(d.dados_envio_ok){
+      document.getElementById('loading-state').style.display='none';
+      var s=document.getElementById('sucesso');
+      s.style.display='flex';
+      s.querySelector('h2').textContent='Dados ja cadastrados!';
+      s.querySelector('p').textContent='Seus dados de entrega ja foram recebidos pela equipe PowerMind. Se precisar atualizar algo, entre em contato pelo WhatsApp.';
+      return;
+    }
+    if(d.cpf) document.getElementById('f-cpf').value=d.cpf;
+    if(d.telefone) document.getElementById('f-telefone').value=d.telefone;
+    document.getElementById('loading-state').style.display='none';
+    document.getElementById('ficha-wrap').style.display='block';
+  }catch(e){
+    document.getElementById('loading-state').textContent='Erro ao carregar. Tente novamente.';
+  }
+}
+async function enviarFicha(){
+  var errEl=document.getElementById('erro-msg');
+  errEl.style.display='none';
+  var cpf=document.getElementById('f-cpf').value.trim();
+  var telefone=document.getElementById('f-telefone').value.trim();
+  var cep=document.getElementById('f-cep').value.trim();
+  var rua=document.getElementById('f-rua').value.trim();
+  var numero=document.getElementById('f-numero').value.trim();
+  var bairro=document.getElementById('f-bairro').value.trim();
+  var cidade=document.getElementById('f-cidade').value.trim();
+  var estado=document.getElementById('f-estado').value.trim();
+  var complemento=document.getElementById('f-complemento').value.trim();
+  if(!cpf||!telefone||!cep||!rua||!numero||!bairro||!cidade||!estado){
+    errEl.textContent='Preencha todos os campos obrigatorios.';
+    errEl.style.display='block';
+    return;
+  }
+  var btn=document.getElementById('btn-enviar');
+  btn.disabled=true;
+  btn.textContent='Enviando...';
+  try{
+    var r=await fetch('/api/creator/dados-envio',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:creatorUsername,cpf:cpf,telefone:telefone,cep:cep,rua:rua,numero:numero,complemento:complemento,bairro:bairro,cidade:cidade,estado:estado})
+    });
+    var res=await r.json();
+    if(res.ok){
+      document.getElementById('ficha-wrap').style.display='none';
+      document.getElementById('sucesso').style.display='flex';
+    }else throw new Error();
+  }catch(e){
+    errEl.textContent='Erro ao enviar. Verifique sua conexao e tente novamente.';
+    errEl.style.display='block';
+    btn.disabled=false;
+    btn.textContent='ENVIAR MEUS DADOS';
+  }
+}
+inicializar();
+</script>
+</body>
+</html>

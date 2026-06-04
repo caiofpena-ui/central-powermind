@@ -1,0 +1,53 @@
+# ── Segredos ──
+.env
+*.env
+
+# ── Backups e arquivos antigos ──
+BACKUP_CRM_POWERMIND_24052026/
+BACKUP_CRM_POWERMIND_24052026.zip
+financeiro/backup_*/
+financeiro/backup crm*/
+financeiro/historico/
+financeiro/fechamentos/
+backup_*/
+
+# ── Projetos não-PowerMind ──
+alpha/
+financas-pessoais/
+obsidian/alpha/
+obsidian/financas/
+
+# ── LPs e projetos separados ──
+powermind-lp-v2/
+mockups/
+
+# ── Logs ──
+*.log
+financeiro/server.log
+financeiro/dre_diario.log
+financeiro/lembrete_creator.log
+
+# ── Temporários ──
+*.txt
+.last_run_powermind.txt
+financeiro/lancamentos_mes_atual.txt
+financeiro/yampi_pedidos_hoje.json
+financeiro/pedidos_notificados.json
+
+# ── Playwright ──
+.playwright-mcp/
+
+# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+
+# ── Mac ──
+.DS_Store
+.AppleDouble
+
+# ── Claude local ──
+.claude/
+
+# ── Node ──
+node_modules/

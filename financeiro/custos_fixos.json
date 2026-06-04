@@ -1,0 +1,5 @@
+{
+  "Mayara": {"valor": 500.0, "categoria": "Pessoal"},
+  "Hostinger": {"valor": 49.99, "categoria": "Infraestrutura"},
+  "Domínio": {"valor": 29.99, "categoria": "Infraestrutura"}
+}
