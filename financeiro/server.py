@@ -2464,7 +2464,7 @@ class Handler(BaseHTTPRequestHandler):
         _path = self.path.split('?')[0]
         if _path == "/api/afiliada/login":
             length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length))
+            body = json.loads(self.rfile.read(length) or b"{}")
             email = (body.get("email") or "").strip().lower()
             senha = body.get("senha") or ""
             creators = load_creators()
@@ -2494,6 +2494,7 @@ class Handler(BaseHTTPRequestHandler):
             revogar_token_afiliada(body.get("token",""))
             self.send_response(200)
             self.send_header("Content-Type","application/json")
+            self.send_header("Access-Control-Allow-Origin","*")
             self.end_headers()
             self.wfile.write(b'{"ok":true}')
             return
