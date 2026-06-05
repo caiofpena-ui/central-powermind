@@ -956,6 +956,10 @@ var chartNicho = null, chartTier = null;
 // ── Utilitários
 function fmtNum(n){ return Number(n||0).toLocaleString('pt-BR'); }
 
+function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function formatSeg(n){
   n = parseInt(n)||0;
   if(n>=1000000) return (n/1000000).toFixed(1)+'M';
@@ -3538,18 +3542,33 @@ function renderAfiliadas(lista) {
   }
   lista.forEach(function(a) {
     var tr = tbody.insertRow();
-    var pagarDisabled = (a.comissao_pendente||0) <= 0 ? 'disabled style="opacity:.4"' : '';
-    tr.innerHTML = '<td><strong>' + (a.nome||a.username) + '</strong><br><small style="color:#64748b">' + a.cupom + '</small></td>'
-      + '<td><code style="background:#0a0f1e;padding:.2rem .5rem;border-radius:4px">' + a.cupom + '</code></td>'
-      + '<td>' + (a.vendas_mes||0) + '</td>'
-      + '<td>R$ ' + (a.faturamento_mes||0).toFixed(2) + '</td>'
-      + '<td style="color:' + ((a.comissao_pendente||0) > 0 ? '#fbbf24' : '#64748b') + '">R$ ' + (a.comissao_pendente||0).toFixed(2) + '</td>'
-      + '<td style="color:#34d399">R$ ' + (a.total_pago||0).toFixed(2) + '</td>'
-      + '<td>'
-        + '<button onclick="pagarAfiliada(\'' + a.username + '\')" ' + pagarDisabled + ' style="background:#7c3aed;color:#fff;border:none;border-radius:4px;padding:.25rem .75rem;cursor:pointer;font-size:.8rem;margin-right:.25rem">Pagar</button>'
-        + '<button onclick="resetSenhaAfiliada(\'' + a.username + '\',\'' + (a.nome||a.username) + '\',\'' + (a.whatsapp||'') + '\')" style="background:#334155;color:#fff;border:none;border-radius:4px;padding:.25rem .75rem;cursor:pointer;font-size:.8rem">Reset Senha</button>'
-        + '<a href="/afiliada" target="_blank" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;padding:.25rem .75rem;font-size:.8rem;text-decoration:none;margin-left:.25rem">Ver Painel</a>'
-      + '</td>';
+    var nomeTd = tr.insertCell();
+    nomeTd.innerHTML = '<strong>' + escHtml(a.nome || a.username) + '</strong><br><small style="color:#64748b">' + escHtml(a.cupom) + '</small>';
+    var cupomTd = tr.insertCell();
+    cupomTd.innerHTML = '<code style="background:#0a0f1e;padding:.2rem .5rem;border-radius:4px">' + escHtml(a.cupom) + '</code>';
+    var vendasTd = tr.insertCell(); vendasTd.textContent = a.vendas_mes;
+    var fatTd = tr.insertCell(); fatTd.textContent = 'R$ ' + (a.faturamento_mes||0).toFixed(2);
+    var comTd = tr.insertCell();
+    comTd.textContent = 'R$ ' + (a.comissao_pendente||0).toFixed(2);
+    comTd.style.color = a.comissao_pendente > 0 ? '#fbbf24' : '#64748b';
+    var pagTd = tr.insertCell();
+    pagTd.textContent = 'R$ ' + (a.total_pago||0).toFixed(2);
+    pagTd.style.color = '#34d399';
+    var acTd = tr.insertCell();
+    var btnPagar = document.createElement('button');
+    btnPagar.textContent = 'Pagar';
+    btnPagar.style.cssText = 'background:#7c3aed;color:#fff;border:none;border-radius:4px;padding:.25rem .75rem;cursor:pointer;font-size:.8rem;margin-right:.25rem';
+    if (a.comissao_pendente <= 0) { btnPagar.disabled = true; btnPagar.style.opacity = '0.4'; }
+    (function(username){ btnPagar.onclick = function(){ pagarAfiliada(username); }; })(a.username);
+    var btnReset = document.createElement('button');
+    btnReset.textContent = 'Reset Senha';
+    btnReset.style.cssText = 'background:#334155;color:#fff;border:none;border-radius:4px;padding:.25rem .75rem;cursor:pointer;font-size:.8rem';
+    (function(u,n,w){ btnReset.onclick = function(){ resetSenhaAfiliada(u,n,w); }; })(a.username, a.nome, a.whatsapp);
+    var linkPainel = document.createElement('a');
+    linkPainel.href = '/afiliada'; linkPainel.target = '_blank';
+    linkPainel.textContent = 'Ver Painel';
+    linkPainel.style.cssText = 'background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;padding:.25rem .75rem;font-size:.8rem;text-decoration:none;margin-left:.25rem';
+    acTd.appendChild(btnPagar); acTd.appendChild(btnReset); acTd.appendChild(linkPainel);
   });
 }
 
@@ -3597,7 +3616,7 @@ async function salvarAfiliada() {
   document.getElementById('modal-ativar-afiliada').style.display = 'none';
   var opt = document.getElementById('af-select-creator').options[document.getElementById('af-select-creator').selectedIndex];
   var nome = opt ? opt.textContent.trim() : username;
-  var msg = 'Ola ' + nome.split(' ')[0] + '! Tudo bem?\n\nSou a Julia da PowerMind! Ativamos o seu acesso como afiliada.\n\nSeus dados:\n- Link: https://www.powermindbr.com.br/?cupom=' + cupom + '\n- Cupom: ' + cupom + '\n- Email: ' + email + '\n- Senha: ' + data.senha_temporaria + '\n\nAcesse seu painel em: http://localhost:8080/afiliada\n\nQualquer duvida e so chamar aqui!';
+  var msg = 'Ola ' + nome.split(' ')[0] + '! Tudo bem?\n\nSou a Julia da PowerMind! Ativamos o seu acesso como afiliada.\n\nSeus dados:\n- Link: https://www.powermindbr.com.br/?cupom=' + cupom + '\n- Cupom: ' + cupom + '\n- Email: ' + email + '\n- Senha: ' + data.senha_temporaria + '\n\nAcesse seu painel em: ' + window.location.origin + '/afiliada\n\nQualquer duvida e so chamar aqui!';
   document.getElementById('wpp-msg-afiliada').value = msg;
   var af = _afiliadas.find(function(a){ return a.username === username; });
   _wppAfiliadaWpp = af ? (af.whatsapp || '') : '';
@@ -3646,7 +3665,7 @@ async function resetSenhaAfiliada(username, nome, wpp) {
     body: JSON.stringify({username: username})
   });
   var data = await r.json();
-  var msg = 'Ola ' + nome.split(' ')[0] + '! A sua senha do painel PowerMind foi redefinida.\n\nNova senha: ' + data.senha_temporaria + '\n\nAcesse: http://localhost:8080/afiliada';
+  var msg = 'Ola ' + nome.split(' ')[0] + '! A sua senha do painel PowerMind foi redefinida.\n\nNova senha: ' + data.senha_temporaria + '\n\nAcesse: ' + window.location.origin + '/afiliada';
   var num = (wpp || '').replace(/\D/g,'');
   var url = num ? 'https://wa.me/55' + num + '?text=' + encodeURIComponent(msg) : 'https://wa.me/?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
