@@ -3586,7 +3586,7 @@ function renderAfiliadas(lista) {
         + '- Cupom: ' + af.cupom + '\n'
         + '- Email: ' + af.email + '\n'
         + '- Senha: PM@2026\n\n'
-        + 'Acesse seu painel em: ' + window.location.origin + '/afiliada\n\n'
+        + 'Acesse seu painel em: ' + BASE_URL + '/afiliada\n\n'
         + 'Qualquer duvida e so chamar aqui!';
       window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
     }; })(a);
@@ -3642,7 +3642,7 @@ async function salvarAfiliada() {
   document.getElementById('modal-ativar-afiliada').style.display = 'none';
   var opt = document.getElementById('af-select-creator').options[document.getElementById('af-select-creator').selectedIndex];
   var nome = opt ? opt.textContent.trim() : username;
-  var msg = 'Ola ' + nome.split(' ')[0] + '! Tudo bem?\n\nSou a Julia da PowerMind! Ativamos o seu acesso como afiliada.\n\nSeus dados:\n- Link: https://www.powermindbr.com.br/?cupom=' + cupom + '\n- Cupom: ' + cupom + '\n- Email: ' + email + '\n- Senha: ' + data.senha_temporaria + '\n\nAcesse seu painel em: ' + window.location.origin + '/afiliada\n\nQualquer duvida e so chamar aqui!';
+  var msg = 'Ola ' + nome.split(' ')[0] + '! Tudo bem?\n\nSou a Julia da PowerMind! Ativamos o seu acesso como afiliada.\n\nSeus dados:\n- Link: https://www.powermindbr.com.br/?cupom=' + cupom + '\n- Cupom: ' + cupom + '\n- Email: ' + email + '\n- Senha: ' + data.senha_temporaria + '\n\nAcesse seu painel em: ' + BASE_URL + '/afiliada\n\nQualquer duvida e so chamar aqui!';
   document.getElementById('wpp-msg-afiliada').value = msg;
   // Pega WhatsApp do cache de creators (já populado ao abrir o modal)
   if (!_wppAfiliadaWpp) {
@@ -3694,7 +3694,7 @@ async function resetSenhaAfiliada(username, nome, wpp) {
     body: JSON.stringify({username: username})
   });
   var data = await r.json();
-  var msg = 'Ola ' + nome.split(' ')[0] + '! A sua senha do painel PowerMind foi redefinida.\n\nNova senha: ' + data.senha_temporaria + '\n\nAcesse: ' + window.location.origin + '/afiliada';
+  var msg = 'Ola ' + nome.split(' ')[0] + '! A sua senha do painel PowerMind foi redefinida.\n\nNova senha: ' + data.senha_temporaria + '\n\nAcesse: ' + BASE_URL + '/afiliada';
   var num = (wpp || '').replace(/\D/g,'');
   var url = num ? 'https://wa.me/55' + num + '?text=' + encodeURIComponent(msg) : 'https://wa.me/?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
