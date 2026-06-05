@@ -35,6 +35,9 @@ FICHA_HTML_FILE    = os.path.join(os.path.dirname(__file__), "ficha.html")
 CONTRATOS_FILE     = os.path.join(os.path.dirname(__file__), "contratos_assinados.json")
 EXPEDICAO_FILE     = os.path.join(os.path.dirname(__file__), "expedicao_envios.json")
 EXPEDICAO_ARQ_FILE = os.path.join(os.path.dirname(__file__), "expedicao_arquivados.json")
+BRAND_FILE         = os.path.join(os.path.dirname(__file__), "brand.json")
+BRIEFINGS_FILE     = os.path.join(os.path.dirname(__file__), "briefings.json")
+MARKETING_HTML_FILE = os.path.join(os.path.dirname(__file__), "marketing.html")
 
 def load_creators():
     try:
@@ -72,6 +75,26 @@ def save_contrato_assinado(username, nome, cpf, cidade, data_assinatura, assinat
 def save_creators(data):
     with open(CREATORS_FILE, "w") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+
+def load_brand():
+    if os.path.exists(BRAND_FILE):
+        with open(BRAND_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def save_brand(data):
+    with open(BRAND_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def load_briefings():
+    if os.path.exists(BRIEFINGS_FILE):
+        with open(BRIEFINGS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+def save_briefings(data):
+    with open(BRIEFINGS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 def migrate_afiliada_fields():
     """Migra campos de afiliada em creators.json — adiciona campos faltantes com defaults."""
@@ -1894,6 +1917,7 @@ class Handler(BaseHTTPRequestHandler):
                     body = f.read()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
                 self.end_headers()
                 self.wfile.write(body)
             except FileNotFoundError:
@@ -2544,6 +2568,34 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(body)
+
+        elif _path == '/marketing':
+            try:
+                with open(MARKETING_HTML_FILE, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.end_headers()
+                self.wfile.write(content.encode('utf-8'))
+            except FileNotFoundError:
+                self.send_error(404, 'marketing.html not found')
+
+        elif _path == '/api/brand/get':
+            brand = load_brand()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(brand, ensure_ascii=False).encode('utf-8'))
+
+        elif _path == '/api/brand/historico':
+            briefings = load_briefings()
+            ultimos = briefings[-20:] if len(briefings) > 20 else briefings
+            ultimos_reversed = list(reversed(ultimos))
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(ultimos_reversed, ensure_ascii=False).encode('utf-8'))
 
         else:
             self.send_response(404)
@@ -3655,6 +3707,16 @@ FORMATO DE SAÍDA:
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(json.dumps({"erro": str(e)}).encode())
+
+        elif _path == '/api/brand/save':
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length)
+            data = json.loads(body)
+            save_brand(data)
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'ok': True}).encode('utf-8'))
 
         else:
             self.send_response(404)
