@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PowerMind · Portal de Afiliadas</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0a0f1e;
+  --card:     #1e293b;
+  --border:   #334155;
+  --purple:   #7c3aed;
+  --purple2:  #6d28d9;
+  --green:    #34d399;
+  --yellow:   #fbbf24;
+  --blue:     #60a5fa;
+  --text:     #e2e8f0;
+  --muted:    #94a3b8;
+  --dim:      #64748b;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* LOGIN */
+#tela-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+.login-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.login-logo h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.login-logo .tagline {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.login-form {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-group input {
+  width: 100%;
+  background: #0f172a;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: var(--text);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--purple);
+}
+
+.btn-primary {
+  width: 100%;
+  background: var(--purple);
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.85rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 0.5rem;
+}
+
+.btn-primary:hover { background: var(--purple2); }
+
+#erro-login {
+  display: none;
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: #f87171;
+  border-radius: 0.5rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* DASHBOARD */
+#tela-dashboard { display: none; }
+
+.header {
+  background: #111827;
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-logo {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.header-creator {
+  text-align: center;
+}
+
+.header-creator .nome {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.header-creator .username {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.btn-sair {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-sair:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 4rem;
+}
+
+.welcome {
+  margin-bottom: 1.5rem;
+}
+
+.welcome h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.welcome .data {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.2rem;
+}
+
+/* CUPOM CARD */
+.cupom-card {
+  background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 60%, #6d28d9 100%);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 32px rgba(124,58,237,0.35);
+}
+
+.cupom-row {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.cupom-section { flex: 1; min-width: 200px; }
+
+.cupom-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 0.4rem;
+}
+
+.cupom-code {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.cupom-link-text {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.8);
+  word-break: break-all;
+  margin-bottom: 0.75rem;
+}
+
+.btn-copy {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  border-radius: 0.4rem;
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-copy:hover { background: rgba(255,255,255,0.25); }
+
+/* KPI GRID */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.kpi-card.blue .kpi-value   { color: var(--blue); }
+.kpi-card.yellow .kpi-value { color: var(--yellow); }
+.kpi-card.purple .kpi-value { color: #a78bfa; }
+.kpi-card.green .kpi-value  { color: var(--green); }
+
+/* SECTIONS */
+.section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* FILTER BUTTONS */
+.filtros {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.filtro-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filtro-btn:hover {
+  border-color: var(--purple);
+  color: var(--text);
+}
+
+.filtro-btn.ativo {
+  background: var(--purple);
+  border-color: var(--purple);
+  color: #fff;
+}
+
+/* TABLE */
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+thead th {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(51,65,85,0.5);
+  transition: background 0.15s;
+}
+
+tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+tbody tr:hover { background: rgba(124,58,237,0.07); }
+
+tbody td {
+  padding: 0.7rem 0.75rem;
+  color: var(--text);
+}
+
+/* BADGES */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-green  { background: rgba(52,211,153,0.15); color: #34d399; }
+.badge-blue   { background: rgba(96,165,250,0.15); color: #60a5fa; }
+.badge-yellow { background: rgba(251,191,36,0.15); color: #fbbf24; }
+
+/* FOOTER */
+.footer {
+  text-align: center;
+  color: var(--dim);
+  font-size: 0.8rem;
+  padding: 2rem 1rem 1rem;
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+
+/* RESPONSIVE */
+@media (max-width: 480px) {
+  .header { padding: 0 1rem; }
+  .header-creator .nome { font-size: 0.85rem; }
+  .main { padding: 1rem 1rem 3rem; }
+  .cupom-code { font-size: 1.5rem; }
+  .kpi-value { font-size: 1.4rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- TELA LOGIN -->
+<div id="tela-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>PowerMind</h1>
+      <p class="tagline">Portal de Afiliadas</p>
+    </div>
+    <div class="login-form">
+      <div id="erro-login"></div>
+      <div class="form-group">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" placeholder="seu@email.com" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label for="senha">Senha</label>
+        <input type="password" id="senha" placeholder="••••••••" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter') fazerLogin()">
+      </div>
+      <button class="btn-primary" onclick="fazerLogin()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TELA DASHBOARD -->
+<div id="tela-dashboard">
+
+  <header class="header">
+    <div class="header-logo">PowerMind</div>
+    <div class="header-creator">
+      <div class="nome" id="creator-nome"></div>
+      <div class="username" id="creator-username"></div>
+    </div>
+    <button class="btn-sair" onclick="sair()">Sair</button>
+  </header>
+
+  <main class="main">
+
+    <div class="welcome">
+      <h2>Seu painel, <span id="creator-nome-bem-vindo"></span></h2>
+      <div class="data" id="data-hoje"></div>
+    </div>
+
+    <div class="cupom-card">
+      <div class="cupom-row">
+        <div class="cupom-section">
+          <div class="cupom-label">Seu Cupom</div>
+          <div class="cupom-code" id="cupom-codigo"></div>
+          <button class="btn-copy" id="btn-copiar-cupom" onclick="copiarCupom()">Copiar Cupom</button>
+        </div>
+        <div class="cupom-section">
+          <div class="cupom-label">Seu Link</div>
+          <div class="cupom-link-text" id="cupom-link"></div>
+          <button class="btn-copy" id="btn-copiar-link" onclick="copiarLink()">Copiar Link</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Vendas este mês</div>
+        <div class="kpi-value" id="kpi-vendas">—</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Faturamento gerado</div>
+        <div class="kpi-value" id="kpi-faturamento">—</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Comissão acumulada</div>
+        <div class="kpi-value" id="kpi-comissao">—</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Total recebido</div>
+        <div class="kpi-value" id="kpi-recebido">—</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Pedidos</div>
+      <div class="filtros">
+        <button class="filtro-btn ativo" onclick="filtrarPedidos('mes', this)">Este mês</button>
+        <button class="filtro-btn" onclick="filtrarPedidos('30d', this)">30 dias</button>
+        <button class="filtro-btn" onclick="filtrarPedidos('todos', this)">Todos</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Nº Pedido</th>
+              <th>Kit</th>
+              <th>Valor</th>
+              <th>Comissão (10%)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="pedidos-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Histórico de Pagamentos</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Período</th>
+              <th>Valor</th>
+              <th>Confirmado por</th>
+            </tr>
+          </thead>
+          <tbody id="pagamentos-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    powermindbr.com.br · @powermindbr_ · Dúvidas? Fale com a Julia pelo WhatsApp
+  </footer>
+
+</div>
+
+<script>
+const API = 'http://localhost:8080';
+const TOKEN_KEY = 'pm_afiliada_token';
+const TOKEN_EXP_KEY = 'pm_afiliada_exp';
+const TOKEN_TTL = 7 * 24 * 60 * 60 * 1000;
+
+let dadosCache = null;
+let _cupomValue = '';
+let _linkValue = '';
+
+function esc(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+window.onload = function() {
+    const hoje = new Date();
+    const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('data-hoje').textContent = hoje.toLocaleDateString('pt-BR', opts);
+
+    const token = localStorage.getItem(TOKEN_KEY);
+    const exp = parseInt(localStorage.getItem(TOKEN_EXP_KEY) || '0');
+    if (token && Date.now() < exp) {
+        mostrarDashboard();
+        carregarDashboard(token);
+    }
+};
+
+async function fazerLogin() {
+    const email = document.getElementById('email').value.trim();
+    const senha = document.getElementById('senha').value;
+    const errEl = document.getElementById('erro-login');
+    errEl.style.display = 'none';
+
+    if (!email || !senha) {
+        errEl.textContent = 'Preencha e-mail e senha';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    try {
+        const r = await fetch(API + '/api/afiliada/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, senha})
+        });
+        const data = await r.json();
+        if (!r.ok) {
+            errEl.textContent = data.erro || 'Credenciais inválidas';
+            errEl.style.display = 'block';
+            return;
+        }
+        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(TOKEN_EXP_KEY, Date.now() + TOKEN_TTL);
+        mostrarDashboard();
+        carregarDashboard(data.token);
+    } catch(e) {
+        errEl.textContent = 'Erro de conexão';
+        errEl.style.display = 'block';
+    }
+}
+
+function mostrarDashboard() {
+    document.getElementById('tela-login').style.display = 'none';
+    document.getElementById('tela-dashboard').style.display = 'block';
+}
+
+async function carregarDashboard(token) {
+    if (!token) token = localStorage.getItem(TOKEN_KEY);
+    if (!token) { sair(); return; }
+
+    try {
+        const r = await fetch(API + '/api/afiliada/dados', {
+            headers: {'Authorization': 'Bearer ' + token}
+        });
+        if (r.status === 401) { sair(); return; }
+        const data = await r.json();
+        dadosCache = data;
+        renderizarDashboard(data);
+    } catch(e) {
+        console.error('Erro ao carregar dashboard', e);
+    }
+}
+
+function setText(id, val) {
+    document.getElementById(id).textContent = val || '—';
+}
+
+function renderizarDashboard(data) {
+    const { creator, kpis, pedidos, pagamentos } = data;
+
+    setText('creator-nome', creator.nome);
+    setText('creator-nome-bem-vindo', (creator.nome || '').split(' ')[0]);
+    setText('creator-username', '@' + (creator.username || '').replace('@', ''));
+
+    _cupomValue = creator.cupom || '';
+    _linkValue = creator.link_afiliado || '';
+    setText('cupom-codigo', _cupomValue || '—');
+    setText('cupom-link', _linkValue || '—');
+
+    setText('kpi-vendas', kpis.vendas_mes);
+    setText('kpi-faturamento', 'R$ ' + Number(kpis.faturamento_mes).toFixed(2));
+    setText('kpi-comissao', 'R$ ' + Number(kpis.comissao_acumulada).toFixed(2));
+    setText('kpi-recebido', 'R$ ' + Number(kpis.total_recebido).toFixed(2));
+
+    renderPedidos(pedidos, 'mes');
+    renderPagamentos(pagamentos);
+}
+
+function renderPedidos(pedidos, filtro) {
+    const hoje = new Date();
+    const mesAtual = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0');
+    const trintaDias = new Date(hoje - 30*24*60*60*1000).toISOString().slice(0,10);
+
+    let lista = pedidos;
+    if (filtro === 'mes') lista = pedidos.filter(p => p.data.startsWith(mesAtual));
+    else if (filtro === '30d') lista = pedidos.filter(p => p.data >= trintaDias);
+
+    const tbody = document.getElementById('pedidos-tbody');
+    tbody.textContent = '';
+
+    if (!lista.length) {
+        const tr = tbody.insertRow();
+        const td = tr.insertCell();
+        td.colSpan = 6;
+        td.style.cssText = 'text-align:center;color:#64748b;padding:2rem';
+        td.textContent = 'Nenhum pedido encontrado';
+        return;
+    }
+
+    lista.forEach(p => {
+        const tr = tbody.insertRow();
+        const cols = [
+            p.data,
+            '#' + p.numero,
+            p.kit,
+            'R$ ' + Number(p.valor).toFixed(2),
+            null, // comissao (colored)
+            null  // badge
+        ];
+
+        cols.forEach((val, i) => {
+            const td = tr.insertCell();
+            if (i === 4) {
+                td.style.color = '#34d399';
+                td.textContent = 'R$ ' + Number(p.comissao).toFixed(2);
+            } else if (i === 5) {
+                const badgeClass = p.status_id === 6 ? 'badge-green' : p.status_id === 8 ? 'badge-blue' : 'badge-yellow';
+                const span = document.createElement('span');
+                span.className = 'badge ' + badgeClass;
+                span.textContent = p.status || 'Processando';
+                td.appendChild(span);
+            } else {
+                td.textContent = val;
+            }
+        });
+    });
+}
+
+function renderPagamentos(pagamentos) {
+    const tbody = document.getElementById('pagamentos-tbody');
+    tbody.textContent = '';
+
+    if (!pagamentos.length) {
+        const tr = tbody.insertRow();
+        const td = tr.insertCell();
+        td.colSpan = 4;
+        td.style.cssText = 'text-align:center;color:#64748b;padding:2rem';
+        td.textContent = 'Nenhum pagamento registrado';
+        return;
+    }
+
+    pagamentos.forEach(p => {
+        const tr = tbody.insertRow();
+        [p.pago_em || '—', p.periodo_pagamento || '—', null, p.pago_por || '—'].forEach((val, i) => {
+            const td = tr.insertCell();
+            if (i === 2) {
+                td.style.color = '#34d399';
+                td.textContent = 'R$ ' + Number(p.comissao).toFixed(2);
+            } else {
+                td.textContent = val;
+            }
+        });
+    });
+}
+
+function filtrarPedidos(filtro, btn) {
+    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('ativo'));
+    if (btn) btn.classList.add('ativo');
+    if (dadosCache) renderPedidos(dadosCache.pedidos, filtro);
+}
+
+function _copiar(txt, btnId) {
+    if (!txt || txt === '—') return;
+    const btn = document.getElementById(btnId);
+    const orig = btn.textContent;
+    const done = () => { btn.textContent = 'Copiado!'; setTimeout(() => btn.textContent = orig, 1500); };
+    navigator.clipboard.writeText(txt).then(done).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = txt;
+        ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        done();
+    });
+}
+
+function copiarCupom() { _copiar(_cupomValue, 'btn-copiar-cupom'); }
+function copiarLink()  { _copiar(_linkValue,  'btn-copiar-link');  }
+
+function sair() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_EXP_KEY);
+    document.getElementById('tela-login').style.display = 'flex';
+    document.getElementById('tela-dashboard').style.display = 'none';
+    document.getElementById('email').value = '';
+    document.getElementById('senha').value = '';
+    dadosCache = null;
+    _cupomValue = '';
+    _linkValue = '';
+}
+</script>
+</body>
+</html>

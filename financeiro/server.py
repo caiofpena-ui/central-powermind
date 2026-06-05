@@ -28,6 +28,7 @@ CREATORS_FILE      = os.path.join(os.path.dirname(__file__), "creators.json")
 COMISSOES_FILE     = os.path.join(os.path.dirname(__file__), "comissoes.json")
 AGENDA_FILE        = os.path.join(os.path.dirname(__file__), "agenda.json")
 CRM_HTML_FILE      = os.path.join(os.path.dirname(__file__), "crm.html")
+AFILIADA_HTML_FILE = os.path.join(os.path.dirname(__file__), "afiliada.html")
 CADASTRO_HTML_FILE = os.path.join(os.path.dirname(__file__), "cadastro.html")
 CONTRATO_HTML_FILE = os.path.join(os.path.dirname(__file__), "contrato.html")
 FICHA_HTML_FILE    = os.path.join(os.path.dirname(__file__), "ficha.html")
@@ -1897,6 +1898,18 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(body)
             except FileNotFoundError:
                 self.send_response(404); self.end_headers()
+
+        elif self.path.split('?')[0] == "/afiliada":
+            try:
+                with open(AFILIADA_HTML_FILE, "rb") as f: body = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+                self.end_headers()
+                self.wfile.write(body)
+            except FileNotFoundError:
+                self.send_response(404); self.end_headers()
+            return
 
         elif self.path.split('?')[0] in ("/cadastro", "/cadastro.html"):
             try:
