@@ -25,6 +25,7 @@ ESTOQUE_FILE       = os.path.join(os.path.dirname(__file__), "estoque.json")
 
 # ── CRM — arquivos ─────────────────────────────────────────────────────────
 CREATORS_FILE      = os.path.join(os.path.dirname(__file__), "creators.json")
+COMISSOES_FILE     = os.path.join(os.path.dirname(__file__), "comissoes.json")
 AGENDA_FILE        = os.path.join(os.path.dirname(__file__), "agenda.json")
 CRM_HTML_FILE      = os.path.join(os.path.dirname(__file__), "crm.html")
 CADASTRO_HTML_FILE = os.path.join(os.path.dirname(__file__), "cadastro.html")
@@ -93,6 +94,17 @@ def migrate_afiliada_fields():
     if changed:
         save_creators(creators)
         print(f"[Afiliadas] Migracao: {len(creators)} creators atualizados")
+
+def load_comissoes():
+    try:
+        with open(COMISSOES_FILE) as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_comissoes(data):
+    with open(COMISSOES_FILE, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
 def load_agenda():
     try:
