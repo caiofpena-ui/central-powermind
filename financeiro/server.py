@@ -21,6 +21,7 @@ AD_ACCOUNT  = "act_4170730686474512"
 YAMPI_ALIAS = "powermind"
 
 FIXOS_FILE         = os.path.join(os.path.dirname(__file__), "custos_fixos.json")
+ESTOQUE_FILE       = os.path.join(os.path.dirname(__file__), "estoque.json")
 
 # ── CRM — arquivos ─────────────────────────────────────────────────────────
 CREATORS_FILE      = os.path.join(os.path.dirname(__file__), "creators.json")
@@ -29,6 +30,9 @@ CRM_HTML_FILE      = os.path.join(os.path.dirname(__file__), "crm.html")
 CADASTRO_HTML_FILE = os.path.join(os.path.dirname(__file__), "cadastro.html")
 CONTRATO_HTML_FILE = os.path.join(os.path.dirname(__file__), "contrato.html")
 FICHA_HTML_FILE    = os.path.join(os.path.dirname(__file__), "ficha.html")
+CONTRATOS_FILE     = os.path.join(os.path.dirname(__file__), "contratos_assinados.json")
+EXPEDICAO_FILE     = os.path.join(os.path.dirname(__file__), "expedicao_envios.json")
+EXPEDICAO_ARQ_FILE = os.path.join(os.path.dirname(__file__), "expedicao_arquivados.json")
 
 def load_creators():
     try:
@@ -37,9 +41,58 @@ def load_creators():
     except:
         return []
 
+def load_contratos():
+    try:
+        with open(CONTRATOS_FILE) as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_contrato_assinado(username, nome, cpf, cidade, data_assinatura, assinatura_b64, acordo):
+    """Salva contrato assinado em arquivo separado — nunca sobrescreve, apenas acrescenta."""
+    contratos = load_contratos()
+    # Evita duplicata: remove versão anterior do mesmo creator se existir
+    contratos = [c for c in contratos if c.get("username") != username]
+    contratos.append({
+        "username":        username,
+        "nome":            nome,
+        "cpf":             cpf,
+        "cidade":          cidade,
+        "data_assinatura": data_assinatura,
+        "assinatura_base64": assinatura_b64,
+        "acordo":          acordo,
+        "salvo_em":        datetime.now().strftime("%d/%m/%Y %H:%M"),
+    })
+    with open(CONTRATOS_FILE, "w") as f:
+        json.dump(contratos, f, indent=2, ensure_ascii=False)
+    print(f"[Contrato] Contrato de {username} salvo em {CONTRATOS_FILE}")
+
 def save_creators(data):
     with open(CREATORS_FILE, "w") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+
+def migrate_afiliada_fields():
+    """Migra campos de afiliada em creators.json — adiciona campos faltantes com defaults."""
+    creators = load_creators()
+    changed = False
+    defaults = {
+        "afiliada_ativa": False,
+        "email": "",
+        "senha_hash": "",
+        "cupom": "",
+        "link_afiliado": "",
+        "pix_chave": "",
+        "pix_tipo": "cpf",
+        "comissao_pct": 10,
+    }
+    for c in creators:
+        for k, v in defaults.items():
+            if k not in c:
+                c[k] = v
+                changed = True
+    if changed:
+        save_creators(creators)
+        print(f"[Afiliadas] Migracao: {len(creators)} creators atualizados")
 
 def load_agenda():
     try:
@@ -174,6 +227,252 @@ def load_env():
                 v[k.strip()] = val.strip()
     except: pass
     return v
+
+# ── Estoque ────────────────────────────────────────────────────────────────
+def load_estoque():
+    try:
+        with open(ESTOQUE_FILE) as f:
+            return json.load(f)
+    except:
+        return {"produtos": [], "movimentacoes": []}
+
+def save_estoque(data):
+    with open(ESTOQUE_FILE, "w") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def registrar_movimentacao(tipo, produto_id, quantidade, origem, descricao, responsavel="Sistema", pedido_ref=""):
+    """
+    tipo: 'entrada' | 'saida_venda' | 'saida_creator' | 'saida_brinde' | 'ajuste'
+    origem: 'yampi' | 'creator' | 'manual' | 'expedicao'
+    """
+    est = load_estoque()
+    produto = next((p for p in est["produtos"] if p["id"] == produto_id), None)
+    if not produto:
+        return None
+
+    estoque_antes = produto["estoque_atual"]
+    if tipo.startswith("saida"):
+        produto["estoque_atual"] = max(0, produto["estoque_atual"] - quantidade)
+    elif tipo == "entrada":
+        produto["estoque_atual"] += quantidade
+    elif tipo == "ajuste":
+        produto["estoque_atual"] = quantidade  # ajuste direto
+
+    produto["atualizado_em"] = datetime.now().strftime("%Y-%m-%d")
+
+    mov = {
+        "id":            f"mov-{int(time.time()*1000)}",
+        "data":          datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "tipo":          tipo,
+        "produto_id":    produto_id,
+        "produto_nome":  produto["nome"],
+        "quantidade":    quantidade,
+        "estoque_antes": estoque_antes,
+        "estoque_depois":produto["estoque_atual"],
+        "origem":        origem,
+        "descricao":     descricao,
+        "responsavel":   responsavel,
+        "pedido_ref":    pedido_ref,
+        "cmv_total":     round(produto["cmv"] * quantidade, 2),
+    }
+    est["movimentacoes"].insert(0, mov)
+    # Manter só os últimos 500 lançamentos
+    est["movimentacoes"] = est["movimentacoes"][:500]
+    save_estoque(est)
+    return mov
+
+def sincronizar_estoque_yampi():
+    """Sincroniza estoque atual buscando total_in_stock diretamente de um pedido recente da Yampi."""
+    env = load_estoque()
+    ya_token  = load_env().get("YAMPI_TOKEN","")
+    ya_secret = load_env().get("YAMPI_SECRET","")
+    url = f"https://api.dooki.com.br/v2/{YAMPI_ALIAS}/orders?per_page=1&filter[status_id]=4"
+    req = urllib.request.Request(url)
+    req.add_header("User-Token", ya_token)
+    req.add_header("User-Secret-Key", ya_secret)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            d = json.loads(r.read())
+        pedidos = d.get("data", [])
+        if pedidos:
+            itens = pedidos[0].get("items", {}).get("data", [])
+            for item in itens:
+                sku_d = item.get("sku", {}).get("data", {})
+                sku   = item.get("item_sku", "")
+                stock = sku_d.get("total_in_stock")
+                if stock is not None:
+                    est = load_estoque()
+                    for p in est["produtos"]:
+                        if p.get("sku") == sku:
+                            p["estoque_atual"]  = stock
+                            p["atualizado_em"]  = datetime.now().strftime("%Y-%m-%d")
+                    save_estoque(est)
+                    return stock
+    except:
+        pass
+    return None
+
+# ── Expedição — persistência de envios ME ─────────────────────────────────
+def load_expedicao():
+    try:
+        with open(EXPEDICAO_FILE) as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_expedicao_envio(pedido_numero, dados):
+    """Salva/atualiza dados do envio ME para um pedido."""
+    env = load_expedicao()
+    env[str(pedido_numero)] = dados
+    with open(EXPEDICAO_FILE, "w") as f:
+        json.dump(env, f, indent=2, ensure_ascii=False)
+
+def load_arquivados():
+    try:
+        with open(EXPEDICAO_ARQ_FILE) as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_arquivados(data):
+    with open(EXPEDICAO_ARQ_FILE, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+# ── Melhor Envio ───────────────────────────────────────────────────────────
+ME_BASE = "https://melhorenvio.com.br/api/v2"
+ME_USER_AGENT = "PowerMind/1.0 (caiofpena@icloud.com)"
+
+# Dimensões por quantidade de pacotes
+DIMENSOES = {
+    1: {"weight": 0.3, "height": 5,  "width": 10, "length": 15},
+    2: {"weight": 0.55,"height": 8,  "width": 12, "length": 20},
+    3: {"weight": 0.8, "height": 10, "width": 15, "length": 25},
+    6: {"weight": 1.5, "height": 15, "width": 20, "length": 30},
+}
+
+REMETENTE = {
+    "name":       "FELIPE DE SOUSA",
+    "phone":      "19991988819",
+    "email":      "rm12suporte@gmail.com",
+    "document":   "39656912870",
+    "address":    "Rua Vereador Fernando Spadaccia",
+    "complement": "",
+    "number":     "355",
+    "district":   "Jardim Das Palmeiras",
+    "city":       "Valinhos",
+    "state_abbr": "SP",
+    "country_id": "BR",
+    "postal_code": "13273062",
+}
+
+REMETENTE_CART = {k: REMETENTE[k] for k in ["name","phone","email","document","address","complement","number","district","city","state_abbr","country_id","postal_code"]}
+
+def me_request(method, path, payload=None):
+    """Faz requisição autenticada à API Melhor Envio."""
+    env   = load_env()
+    token = env.get("MELHOR_ENVIO_TOKEN", "")
+    url   = ME_BASE + path
+    data  = json.dumps(payload).encode() if payload else None
+    req   = urllib.request.Request(url, data=data, method=method)
+    req.add_header("Authorization", f"Bearer {token}")
+    req.add_header("Accept",        "application/json")
+    req.add_header("Content-Type",  "application/json")
+    req.add_header("User-Agent",    ME_USER_AGENT)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.loads(r.read()), r.getcode()
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        return {"erro": body, "status": e.code}, e.code
+    except Exception as ex:
+        return {"erro": str(ex)}, 500
+
+def me_dimensoes_para_qtd(qtd):
+    """Retorna dimensões baseadas na quantidade de pacotes."""
+    if qtd >= 6: return DIMENSOES[6]
+    if qtd >= 3: return DIMENSOES[3]
+    if qtd >= 2: return DIMENSOES[2]
+    return DIMENSOES[1]
+
+def pedidos_aguardando_expedicao():
+    """Retorna pedidos com status 'Pagamento aprovado' (status_id=4) — pagos e não enviados.
+
+    Regra de exibição:
+    - Sempre inclui pedidos com envio ME registrado (independente da data)
+    - Exclui pedidos SEM envio ME com mais de 60 dias (órfãos antigos travados na Yampi)
+    """
+    env = load_env()
+    ya_token  = env.get("YAMPI_TOKEN", "")
+    ya_secret = env.get("YAMPI_SECRET", "")
+    alias = YAMPI_ALIAS
+    # Carregar números de pedidos que têm envio ME registrado
+    envios_me = load_expedicao()
+    numeros_me = set(str(k) for k in envios_me.keys())
+    # Corte: pedidos sem ME com mais de 60 dias são ignorados
+    cutoff = (datetime.now() - timedelta(days=60)).date()
+    # status_id=4 = Pagamento aprovado (pago, aguardando separação/envio)
+    pedidos = []
+    page = 1
+    while True:
+        url = (f"https://api.dooki.com.br/v2/{alias}/orders"
+               f"?include=customer,items,shipping_address"
+               f"&filter[status_id]=4"
+               f"&per_page=50&page={page}")
+        req = urllib.request.Request(url)
+        req.add_header("User-Token",      ya_token)
+        req.add_header("User-Secret-Key", ya_secret)
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read())
+        except:
+            break
+        items = data.get("data", [])
+        if not items:
+            break
+        meta  = data.get("meta", {}).get("pagination", {})
+        for p in items:
+            numero_str = str(p.get("number",""))
+            # Data de criação do pedido
+            created_raw = p.get("created_at","")
+            if isinstance(created_raw, dict):
+                created_str = created_raw.get("date","")[:10]
+            else:
+                created_str = str(created_raw)[:10]
+            try:
+                created_date = datetime.strptime(created_str, "%Y-%m-%d").date()
+            except:
+                created_date = datetime.now().date()
+            # Filtrar: se não tem envio ME e é mais antigo que 60 dias → ignorar
+            if numero_str not in numeros_me and created_date < cutoff:
+                continue
+            cust = (p.get("customer") or {}).get("data", {})
+            addr = (p.get("shipping_address") or {}).get("data", {})
+            itens_data = (p.get("items") or {}).get("data", [])
+            qtd_total = sum(i.get("quantity", 1) for i in itens_data)
+            pedidos.append({
+                "id":         p.get("id"),
+                "numero":     p.get("number"),
+                "cliente":    (cust.get("name") or f"{cust.get('first_name','')} {cust.get('last_name','')}".strip() or "—"),
+                "telefone":   (cust.get("phone") or {}).get("full_number","") if isinstance(cust.get("phone"), dict) else str(cust.get("phone","") or ""),
+                "email":      cust.get("email", ""),
+                "cpf":        (cust.get("cpf") or "").replace(".","").replace("-","").replace("/",""),
+                "cep":        (addr.get("zipcode") or "").replace("-",""),
+                "endereco":   addr.get("street", ""),
+                "numero_end": addr.get("number", ""),
+                "complemento":addr.get("complement",""),
+                "bairro":     addr.get("neighborhood",""),
+                "cidade":     addr.get("city",""),
+                "estado":     addr.get("state",""),
+                "qtd":        qtd_total,
+                "total":      float(p.get("value_total") or p.get("buyer_value_total") or p.get("value_products") or 0),
+                "created_at": created_str,
+                "dimensoes":  me_dimensoes_para_qtd(qtd_total),
+            })
+        total_pages = meta.get("total_pages", 1)
+        if page >= total_pages:
+            break
+        page += 1
+    return pedidos
 
 def meta_get(path, params, token):
     params["access_token"] = token
@@ -1375,7 +1674,8 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
-        if self.path == "/api/data":
+        _path = self.path.split('?')[0]
+        if _path == "/api/data":
             data = get_cached()
             body = json.dumps(data, ensure_ascii=False).encode()
             self.send_response(200)
@@ -1384,7 +1684,24 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
-        elif self.path == "/logo.png":
+        elif _path.startswith("/assets/"):
+            fname = os.path.basename(_path)
+            asset_file = os.path.join(os.path.dirname(__file__), "assets", fname)
+            ext = fname.rsplit(".", 1)[-1].lower() if "." in fname else ""
+            mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+                    "gif": "image/gif", "webp": "image/webp"}.get(ext, "application/octet-stream")
+            try:
+                with open(asset_file, "rb") as f:
+                    body = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", mime)
+                self.send_header("Cache-Control", "max-age=86400")
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            except FileNotFoundError:
+                self.send_response(404); self.end_headers(); return
+        elif self.path.split('?')[0] == "/logo.png":
             logo_file = os.path.join(os.path.dirname(__file__), "logo.png")
             try:
                 with open(logo_file, "rb") as f:
@@ -1395,6 +1712,18 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(body)
                 return
+            except FileNotFoundError:
+                self.send_response(404); self.end_headers(); return
+        elif _path == "/scripts_primeiros_contatos.json":
+            try:
+                f_path = os.path.join(os.path.dirname(__file__), "scripts_primeiros_contatos.json")
+                with open(f_path, "rb") as f:
+                    body = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(body)
             except FileNotFoundError:
                 self.send_response(404); self.end_headers(); return
         elif self.path.split('?')[0] in ("/crm", "/creators"):
@@ -1523,7 +1852,7 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
 
-        elif self.path == "/api/creators":
+        elif _path == "/api/creators":
             creators = load_creators()
             body = json.dumps(creators, ensure_ascii=False).encode()
             self.send_response(200)
@@ -1532,9 +1861,33 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
 
-        elif self.path == "/api/agenda":
+        elif _path == "/api/agenda":
             agenda = load_agenda()
             body = json.dumps(agenda, ensure_ascii=False).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+
+        elif self.path.startswith("/api/creator/contrato-salvo"):
+            from urllib.parse import urlparse, parse_qs
+            qs  = parse_qs(urlparse(self.path).query)
+            u   = qs.get("u", [""])[0].strip()
+            contratos = load_contratos()
+            found = next((c for c in contratos if c.get("username") == u), None)
+            if found:
+                payload = {
+                    "ok":              True,
+                    "username":        found.get("username"),
+                    "nome":            found.get("nome"),
+                    "data_assinatura": found.get("data_assinatura"),
+                    "salvo_em":        found.get("salvo_em"),
+                    "assinatura_base64": found.get("assinatura_base64", ""),
+                }
+            else:
+                payload = {"ok": False}
+            body = json.dumps(payload, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -1597,7 +1950,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 self.send_response(404); self.end_headers()
 
-        elif self.path in ("/", "/dashboard"):
+        elif _path in ("/", "/dashboard"):
             html_file = os.path.join(os.path.dirname(__file__), "dashboard.html")
             try:
                 with open(html_file, "rb") as f:
@@ -1606,6 +1959,8 @@ class Handler(BaseHTTPRequestHandler):
                 body = DASHBOARD_HTML.encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
             self.end_headers()
             self.wfile.write(body)
 
@@ -1620,7 +1975,8 @@ class Handler(BaseHTTPRequestHandler):
                                 5:"Separando",6:"Entregue",7:"Cancelado",8:"Enviado",
                                 10:"Nota Fiscal",12:"Pronto p/ Envio",15:"Estorno"}
                 pedidos = []
-                for page in range(1, 20):
+                max_pages = 200 if dias >= 9999 else 20
+                for page in range(1, max_pages + 1):
                     d = yampi_get("orders", {"page": page, "limit": 50,
                         "include": "customer,items,shipping_address"}, YAMPI_ALIAS, token, secret)
                     rows = d.get("data", [])
@@ -1633,7 +1989,7 @@ class Handler(BaseHTTPRequestHandler):
                         try:
                             from datetime import date
                             diff = (date.today() - date.fromisoformat(created)).days
-                            if diff > dias: stop = True; break
+                            if dias < 9999 and diff > dias: stop = True; break
                         except: pass
                         c    = o.get("customer",{}).get("data",{}) if isinstance(o.get("customer"),dict) else {}
                         addr = o.get("shipping_address",{}).get("data",{}) if isinstance(o.get("shipping_address"),dict) else {}
@@ -1708,17 +2064,21 @@ class Handler(BaseHTTPRequestHandler):
                         tel_obj = c.get("phone",{})
                         tel = tel_obj.get("full_number","") if isinstance(tel_obj,dict) else str(tel_obj or "")
                         tel_digits = "".join(filter(str.isdigit, tel))
-                        itens_str = ", ".join(
-                            (i.get("data",i) if isinstance(i,dict) else i).get("name","?") if isinstance((i.get("data",i) if isinstance(i,dict) else i),dict) else "?"
-                            for i in items
-                        )
-                        valor = float(o.get("total","0") or "0")
-                        msg = (f"Oi {nome}! 💚\n\nPercebemos que seu PowerMind deve estar chegando ao fim "
-                               f"— já fazem {diff} dias desde o seu pedido.\n\n"
-                               f"Muitas clientes já estão no Kit 2x (Power Duo) ou 3x para garantir "
-                               f"o resultado sem interrupção — e economiza bastante.\n\n"
-                               f"Quer garantir o próximo agora? 👇\n"
-                               f"https://www.powermindbr.com.br/")
+                        itens_parts = []
+                        for i in items:
+                            qty = i.get("quantity", 1) if isinstance(i, dict) else 1
+                            sku_data = i.get("sku", {}).get("data", {}) if isinstance(i, dict) else {}
+                            title = sku_data.get("title") or i.get("item_sku") or "?"
+                            itens_parts.append(f"{qty}x {title}" if qty > 1 else str(title))
+                        itens_str = ", ".join(itens_parts) if itens_parts else "—"
+                        valor = float(o.get("value_total") or o.get("total") or 0)
+                        msg = (f"Oi {nome}! Tudo bem?\n\n"
+                               f"Aqui é a Julia da PowerMind! Passando pra saber como você tá se sentindo com o produto — já fazem {diff} dias desde o seu pedido!\n\n"
+                               f"A maioria das nossas clientes começa a notar os melhores resultados a partir do segundo mês de uso contínuo. "
+                               f"O Kit Power Duo (2x) é o mais escolhido justamente por isso — garante a sequência sem preocupação!\n\n"
+                               f"Posso ajudar você a garantir o próximo?\n"
+                               f"https://www.powermindbr.com.br/\n\n"
+                               f"Qualquer dúvida é só me chamar aqui!")
                         wa_link = f"https://wa.me/55{tel_digits}?text={urllib.parse.quote(msg)}" if tel_digits else ""
                         recompra.append({
                             "nome": nome_completo,
@@ -1804,6 +2164,213 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(body)
 
+        elif _path == "/api/estoque":
+            try:
+                est  = load_estoque()
+                body = json.dumps(est, ensure_ascii=False).encode()
+                self.send_response(200)
+                self.send_header("Content-Type","application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin","*")
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as e:
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.wfile.write(json.dumps({"erro":str(e)}).encode())
+
+        elif _path == "/api/estoque/sincronizar":
+            try:
+                stock = sincronizar_estoque_yampi()
+                est   = load_estoque()
+                body  = json.dumps({"ok": True, "estoque": est}, ensure_ascii=False).encode()
+                self.send_response(200)
+                self.send_header("Content-Type","application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin","*")
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as e:
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.wfile.write(json.dumps({"erro":str(e)}).encode())
+
+        elif _path == "/api/expedicao/envios-me":
+            try:
+                dados = load_expedicao()
+                arquivados = load_arquivados()
+                body = json.dumps({"ok": True, "envios": dados, "arquivados": arquivados}, ensure_ascii=False).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as e:
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.wfile.write(json.dumps({"erro":str(e)}).encode())
+
+        elif _path == "/api/expedicao/sincronizar-me":
+            """Sincronização COMPLETA: puxa 100% dos dados ME + Yampi e cruza tudo."""
+            try:
+                import unicodedata
+                def norm(s):
+                    s = (s or "").upper().strip()
+                    s = unicodedata.normalize("NFD", s)
+                    return "".join(c for c in s if unicodedata.category(c) != "Mn")
+
+                env_data = load_env()
+                ya_token  = env_data.get("YAMPI_TOKEN","")
+                ya_secret = env_data.get("YAMPI_SECRET","")
+
+                # ── 1. Puxar TODOS pedidos Yampi (sem filtro de status) ──────
+                todos_yampi = []
+                for page in range(1, 30):
+                    url = (f"https://api.dooki.com.br/v2/{YAMPI_ALIAS}/orders"
+                           f"?include=customer,items,shipping_address&per_page=50&page={page}")
+                    req = urllib.request.Request(url)
+                    req.add_header("User-Token", ya_token)
+                    req.add_header("User-Secret-Key", ya_secret)
+                    try:
+                        with urllib.request.urlopen(req, timeout=20) as r:
+                            d = json.loads(r.read())
+                    except:
+                        break
+                    items = d.get("data", [])
+                    if not items:
+                        break
+                    for p in items:
+                        cust = (p.get("customer") or {}).get("data", {})
+                        addr = (p.get("shipping_address") or {}).get("data", {})
+                        itens_data = (p.get("items") or {}).get("data", [])
+                        qtd = sum(i.get("quantity",1) for i in itens_data)
+                        nome = (cust.get("name") or f"{cust.get('first_name','')} {cust.get('last_name','')}".strip() or "")
+                        tel  = (cust.get("phone") or {}).get("full_number","") if isinstance(cust.get("phone"),dict) else str(cust.get("phone","") or "")
+                        todos_yampi.append({
+                            "id":      p.get("id"),
+                            "numero":  p.get("number"),
+                            "status_id": p.get("status_id"),
+                            "cliente": nome,
+                            "telefone": tel,
+                            "email":   cust.get("email",""),
+                            "cpf":     (cust.get("cpf") or "").replace(".","").replace("-","").replace("/",""),
+                            "cep":     (addr.get("zipcode") or "").replace("-",""),
+                            "endereco": addr.get("street",""),
+                            "numero_end": addr.get("number",""),
+                            "complemento": addr.get("complement",""),
+                            "bairro":  addr.get("neighborhood",""),
+                            "cidade":  addr.get("city",""),
+                            "estado":  addr.get("state",""),
+                            "qtd":     qtd,
+                            "total":   float(p.get("value_total") or p.get("buyer_value_total") or p.get("value_products") or 0),
+                            "created_at": str(p.get("created_at",""))[:10] if isinstance(p.get("created_at"),str) else str((p.get("created_at") or {}).get("date",""))[:10],
+                            "dimensoes": me_dimensoes_para_qtd(qtd),
+                        })
+                    meta = d.get("meta",{}).get("pagination",{})
+                    if page >= meta.get("total_pages", 1):
+                        break
+
+                # ── 2. Puxar TODOS pedidos ME (todas as páginas) ─────────────
+                todos_me = []
+                for page in range(1, 20):
+                    result, code = me_request("GET", f"/me/orders?per_page=50&page={page}", None)
+                    if code >= 400:
+                        break
+                    items = result.get("data", [])
+                    todos_me.extend(items)
+                    if len(items) < 50:
+                        break
+
+                # ── 3. Cruzar por nome normalizado ───────────────────────────
+                PRIORIDADE = {"released":0,"received":1,"posted":2,"delivered":3,"undelivered":4,"canceled":5,"pending":6}
+                me_por_nome = {}
+                for o in todos_me:
+                    to = o.get("to") or {}
+                    n = norm(to.get("name",""))
+                    if n:
+                        me_por_nome.setdefault(n, []).append(o)
+
+                envios_salvos = {}   # reset completo para refletir estado atual
+                sincronizados = 0
+                sem_envio = 0
+                por_status = {}
+
+                for p in todos_yampi:
+                    nome_n = norm(p.get("cliente",""))
+                    cands  = me_por_nome.get(nome_n, [])
+                    # Filtrar por CEP se disponível para evitar homônimos
+                    if len(cands) > 1 and p.get("cep"):
+                        cands_cep = [c for c in cands if (c.get("to") or {}).get("postal_code","").replace("-","") == p["cep"]]
+                        if cands_cep:
+                            cands = cands_cep
+                    # Só com tracking e não pending
+                    com_track = [c for c in cands if c.get("tracking") and c.get("status") not in ("pending",)]
+                    if not com_track:
+                        sem_envio += 1
+                        continue
+                    com_track.sort(key=lambda o: PRIORIDADE.get(o.get("status",""),99))
+                    melhor = com_track[0]
+                    svc = melhor.get("service") or {}
+                    company = (svc.get("company") or {}) if isinstance(svc, dict) else {}
+                    gerado = str(melhor.get("generated_at") or melhor.get("created_at",""))[:10]
+                    status_me = melhor.get("status","")
+                    por_status[status_me] = por_status.get(status_me,0) + 1
+                    envios_salvos[str(p["numero"])] = {
+                        "pedido_numero":  p["numero"],
+                        "pedido_id":      p.get("id",""),
+                        "cliente":        p.get("cliente",""),
+                        "cidade":         p.get("cidade",""),
+                        "estado":         p.get("estado",""),
+                        "me_order_id":    melhor.get("id",""),
+                        "tracking_code":  melhor.get("tracking",""),
+                        "transportadora": company.get("name","") or melhor.get("service_code",""),
+                        "status_me":      status_me,
+                        "print_url":      "",
+                        "gerado_em":      gerado,
+                        "sincronizado":   True,
+                    }
+                    sincronizados += 1
+
+                # Manter entradas geradas manualmente (com print_url) que não foram sobrescritas
+                old = load_expedicao()
+                for k, v in old.items():
+                    if v.get("print_url") and k not in envios_salvos:
+                        envios_salvos[k] = v
+
+                with open(EXPEDICAO_FILE, "w") as f:
+                    json.dump(envios_salvos, f, indent=2, ensure_ascii=False)
+
+                body = json.dumps({
+                    "ok": True,
+                    "sincronizados": sincronizados,
+                    "sem_envio_me": sem_envio,
+                    "total_me": len(todos_me),
+                    "total_yampi": len(todos_yampi),
+                    "por_status": por_status,
+                    "envios": envios_salvos,
+                }, ensure_ascii=False).encode()
+                self.send_response(200)
+                self.send_header("Content-Type","application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin","*")
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as e:
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.wfile.write(json.dumps({"erro":str(e)}).encode())
+
+        elif _path == "/api/expedicao/pedidos":
+            try:
+                pedidos = pedidos_aguardando_expedicao()
+                body = json.dumps({"pedidos": pedidos, "total": len(pedidos)}, ensure_ascii=False).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as e:
+                body = json.dumps({"erro": str(e)}).encode()
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(body)
+
         else:
             self.send_response(404)
             self.end_headers()
@@ -1816,7 +2383,25 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
-        if self.path == "/api/fechamento/gerar":
+        _path = self.path.split('?')[0]
+        if _path == "/assets/upload":
+            import cgi
+            ctype, pdict = cgi.parse_header(self.headers.get('Content-Type',''))
+            if ctype == 'multipart/form-data':
+                pdict['boundary'] = pdict.get('boundary','').encode()
+                pdict['CONTENT-LENGTH'] = int(self.headers.get('Content-Length',0))
+                fields = cgi.parse_multipart(self.rfile, pdict)
+                file_data = fields.get('file', [None])[0]
+                if file_data:
+                    dest = os.path.join(os.path.dirname(__file__), "assets", "instagram_cover.jpg")
+                    with open(dest, 'wb') as f:
+                        f.write(file_data if isinstance(file_data, bytes) else file_data.encode())
+            self.send_response(200)
+            self.send_header("Content-Type","application/json")
+            self.end_headers()
+            self.wfile.write(b'{"ok":true}')
+            return
+        if _path == "/api/fechamento/gerar":
             length = int(self.headers.get("Content-Length", 0))
             body   = self.rfile.read(length)
             try:
@@ -1837,7 +2422,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"erro": str(e)}).encode())
             return
 
-        if self.path == "/api/lancamento":
+        if _path == "/api/lancamento":
             length = int(self.headers.get("Content-Length", 0))
             body   = self.rfile.read(length)
             try:
@@ -1854,7 +2439,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(str(e).encode())
 
-        elif self.path == "/api/lancamento/delete":
+        elif _path == "/api/lancamento/delete":
             length = int(self.headers.get("Content-Length", 0))
             body   = self.rfile.read(length)
             try:
@@ -1883,7 +2468,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 data   = json.loads(body)
                 fixos  = load_fixos()
-                if self.path == "/api/fixos/add":
+                if _path == "/api/fixos/add":
                     nome      = data.get("nome","").strip()
                     valor     = float(data.get("valor", 0))
                     categoria = data.get("categoria", "Outros").strip()
@@ -1891,7 +2476,7 @@ class Handler(BaseHTTPRequestHandler):
                         fixos[nome] = {"valor": valor, "categoria": categoria}
                         save_fixos(fixos)
                         _cache["ts"] = 0
-                elif self.path == "/api/fixos/delete":
+                elif _path == "/api/fixos/delete":
                     nome = data.get("nome","").strip()
                     if nome in fixos:
                         del fixos[nome]
@@ -1906,7 +2491,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_response(400); self.end_headers(); self.wfile.write(str(e).encode())
 
-        elif self.path == "/api/creator/save":
+        elif _path == "/api/creator/save":
             length = int(self.headers.get("Content-Length", 0))
             raw    = self.rfile.read(length)
             try:
@@ -1919,6 +2504,17 @@ class Handler(BaseHTTPRequestHandler):
                     entry["cadastrado_em"] = datetime.now().strftime("%d/%m/%Y")
                 idx = next((i for i, c in enumerate(creators) if c.get("username") == username), None)
                 if idx is not None:
+                    # Preservar campos protegidos que o form não envia
+                    campos_protegidos = [
+                        "contrato_assinado", "contrato_assinado_em", "assinatura_base64",
+                        "dados_envio_ok", "dados_envio_em",
+                        "cep", "rua", "numero_end", "complemento", "bairro", "cidade_end", "estado",
+                        "video_drive_link", "video_pasta_em",
+                        "postagens_status", "cadastrado_em",
+                    ]
+                    for campo in campos_protegidos:
+                        if campo not in entry and campo in creators[idx]:
+                            entry[campo] = creators[idx][campo]
                     creators[idx] = entry
                 else:
                     creators.append(entry)
@@ -1934,7 +2530,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(str(e).encode())
 
-        elif self.path == "/api/creator/delete":
+        elif _path == "/api/creator/delete":
             length = int(self.headers.get("Content-Length", 0))
             raw    = self.rfile.read(length)
             try:
@@ -1954,7 +2550,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(str(e).encode())
 
-        elif self.path == "/api/creator/enrich":
+        elif _path == "/api/creator/enrich":
             length = int(self.headers.get("Content-Length", 0))
             raw    = self.rfile.read(length)
             try:
@@ -1972,7 +2568,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(str(e).encode())
 
-        elif self.path == "/api/agenda/save":
+        elif _path == "/api/agenda/save":
             length = int(self.headers.get("Content-Length", 0))
             raw    = self.rfile.read(length)
             try:
@@ -1990,7 +2586,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_response(400); self.end_headers(); self.wfile.write(str(e).encode())
 
-        elif self.path == "/api/agenda/concluir":
+        elif _path == "/api/agenda/concluir":
             length = int(self.headers.get("Content-Length", 0))
             raw    = self.rfile.read(length)
             try:
@@ -2006,7 +2602,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_response(400); self.end_headers(); self.wfile.write(str(e).encode())
 
-        elif self.path == "/api/agenda/delete":
+        elif _path == "/api/agenda/delete":
             length = int(self.headers.get("Content-Length", 0))
             raw    = self.rfile.read(length)
             try:
@@ -2019,7 +2615,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_response(400); self.end_headers(); self.wfile.write(str(e).encode())
 
-        elif self.path == "/api/creator/contrato-assinar":
+        elif _path == "/api/creator/contrato-assinar":
             length = int(self.headers.get("Content-Length", 0))
             raw    = self.rfile.read(length)
             try:
@@ -2054,9 +2650,12 @@ class Handler(BaseHTTPRequestHandler):
                     })
                 save_creators(creators)
 
-                # Salvar contrato no Google Drive (pasta Contratos Creators)
+                # ── TRAVA: salvar contrato em arquivo separado (contratos_assinados.json)
                 creator_data = creators[idx] if idx is not None else {"username": username, "nome": nome, "cpf": cpf, "cidade": cidade}
                 ac = creator_data.get("acordo", {})
+                save_contrato_assinado(username, creator_data.get("nome", nome), cpf, cidade, data_assinatura, assinatura, ac)
+
+                # Salvar contrato no Google Drive (pasta Contratos Creators)
                 Thread(target=sync_contrato_drive, args=(creator_data, ac, data_assinatura, assinatura), daemon=True).start()
 
                 resp = json.dumps({"ok": True}, ensure_ascii=False).encode()
@@ -2070,7 +2669,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(str(e).encode())
 
-        elif self.path == "/api/creator/postagem-status":
+        elif _path == "/api/creator/postagem-status":
             length = int(self.headers.get("Content-Length", 0))
             raw    = self.rfile.read(length)
             try:
@@ -2095,7 +2694,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._json({"ok": False, "error": str(e)}, 500)
 
-        elif self.path == "/api/creator/dados-envio":
+        elif _path == "/api/creator/dados-envio":
             length = int(self.headers.get("Content-Length", 0))
             raw    = self.rfile.read(length)
             try:
@@ -2113,7 +2712,7 @@ class Handler(BaseHTTPRequestHandler):
                 partes = [rua, numero]
                 if complemento:
                     partes.append(complemento)
-                partes += [bairro, cidade + "-" + estado, "CEP " + cep]
+                partes += [bairro, cidade, estado, cep]
                 endereco = ", ".join(p for p in partes if p)
                 agora = datetime.now().strftime("%d/%m/%Y %H:%M")
                 creators = load_creators()
@@ -2122,6 +2721,13 @@ class Handler(BaseHTTPRequestHandler):
                     creators[idx]["cpf"]            = cpf
                     creators[idx]["telefone"]       = telefone
                     creators[idx]["endereco"]       = endereco
+                    creators[idx]["cep"]            = cep
+                    creators[idx]["rua"]            = rua
+                    creators[idx]["numero_end"]     = numero
+                    creators[idx]["complemento"]    = complemento
+                    creators[idx]["bairro"]         = bairro
+                    creators[idx]["cidade_end"]     = cidade
+                    creators[idx]["estado"]         = estado
                     creators[idx]["dados_envio_ok"] = True
                     creators[idx]["dados_envio_em"] = agora
                 else:
@@ -2132,6 +2738,13 @@ class Handler(BaseHTTPRequestHandler):
                         "cpf":            cpf,
                         "telefone":       telefone,
                         "endereco":       endereco,
+                        "cep":            cep,
+                        "rua":            rua,
+                        "numero_end":     numero,
+                        "complemento":    complemento,
+                        "bairro":         bairro,
+                        "cidade_end":     cidade,
+                        "estado":         estado,
                         "dados_envio_ok": True,
                         "dados_envio_em": agora,
                         "cadastrado_em":  datetime.now().strftime("%d/%m/%Y"),
@@ -2148,7 +2761,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(str(e).encode())
 
-        elif self.path == "/api/creator/video-link":
+        elif _path == "/api/creator/video-link":
             length = int(self.headers.get("Content-Length", 0))
             raw    = self.rfile.read(length)
             try:
@@ -2203,7 +2816,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(str(e).encode())
 
-        elif self.path == "/api/script/chat":
+        elif _path == "/api/script/chat":
             length = int(self.headers.get("Content-Length", 0))
             raw    = self.rfile.read(length)
             try:
@@ -2348,7 +2961,7 @@ FORMATO DE SAÍDA:
                 self.end_headers()
                 self.wfile.write(resp)
 
-        elif self.path == "/webhook/yampi":
+        elif _path == "/webhook/yampi":
             length = int(self.headers.get("Content-Length", 0))
             body   = self.rfile.read(length)
             ts     = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -2370,6 +2983,372 @@ FORMATO DE SAÍDA:
                 self.send_response(200)  # sempre 200 para Yampi não retentar
                 self.end_headers()
                 self.wfile.write(b'{"ok":false}')
+        # ── Estoque ─────────────────────────────────────────────────────────
+        elif _path == "/api/estoque/movimentacao":
+            length = int(self.headers.get("Content-Length",0))
+            body   = self.rfile.read(length)
+            try:
+                req_data    = json.loads(body)
+                mov = registrar_movimentacao(
+                    tipo        = req_data.get("tipo","saida_brinde"),
+                    produto_id  = req_data.get("produto_id","POWERMIND-1UN"),
+                    quantidade  = int(req_data.get("quantidade",1)),
+                    origem      = req_data.get("origem","manual"),
+                    descricao   = req_data.get("descricao",""),
+                    responsavel = req_data.get("responsavel","Felipe"),
+                    pedido_ref  = req_data.get("pedido_ref",""),
+                )
+                resp = json.dumps({"ok": True, "movimentacao": mov, "estoque": load_estoque()}, ensure_ascii=False).encode()
+                self.send_response(200)
+                self.send_header("Content-Type","application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin","*")
+                self.end_headers()
+                self.wfile.write(resp)
+            except Exception as e:
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.wfile.write(json.dumps({"erro":str(e)}).encode())
+
+        elif _path == "/api/estoque/ajuste":
+            length = int(self.headers.get("Content-Length",0))
+            body   = self.rfile.read(length)
+            try:
+                req_data   = json.loads(body)
+                produto_id = req_data.get("produto_id","POWERMIND-1UN")
+                novo_qtd   = int(req_data.get("quantidade"))
+                motivo     = req_data.get("motivo","Ajuste manual")
+                est        = load_estoque()
+                produto    = next((p for p in est["produtos"] if p["id"] == produto_id), None)
+                antes      = produto["estoque_atual"] if produto else 0
+                mov = registrar_movimentacao("ajuste", produto_id, novo_qtd, "manual", motivo, req_data.get("responsavel","Felipe"))
+                resp = json.dumps({"ok": True, "antes": antes, "depois": novo_qtd, "movimentacao": mov}, ensure_ascii=False).encode()
+                self.send_response(200)
+                self.send_header("Content-Type","application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin","*")
+                self.end_headers()
+                self.wfile.write(resp)
+            except Exception as e:
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.wfile.write(json.dumps({"erro":str(e)}).encode())
+
+        # ── Expedição / Melhor Envio ────────────────────────────────────────
+        elif _path == "/api/expedicao/cotar":
+            length = int(self.headers.get("Content-Length", 0))
+            body   = self.rfile.read(length)
+            try:
+                req_data = json.loads(body)
+                cep_dest = req_data.get("cep", "").replace("-","")
+                qtd      = int(req_data.get("qtd", 1))
+                dims     = me_dimensoes_para_qtd(qtd)
+                payload  = {
+                    "from": {"postal_code": REMETENTE["postal_code"]},
+                    "to":   {"postal_code": cep_dest},
+                    "package": {
+                        "height": dims["height"],
+                        "width":  dims["width"],
+                        "length": dims["length"],
+                        "weight": dims["weight"],
+                    },
+                    "options": {
+                        "receipt":    False,
+                        "own_hand":   False,
+                        "collect":    False,
+                    },
+                }
+                result, code = me_request("POST", "/me/shipment/calculate", payload)
+                resp = json.dumps(result, ensure_ascii=False).encode()
+                self.send_response(200 if code < 400 else code)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(resp)
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(json.dumps({"erro": str(e)}).encode())
+
+        elif _path == "/api/expedicao/gerar-etiqueta":
+            length = int(self.headers.get("Content-Length", 0))
+            body   = self.rfile.read(length)
+            try:
+                req_data   = json.loads(body)
+                service_id = int(req_data.get("service_id"))  # ID da transportadora escolhida
+                pedido     = req_data.get("pedido", {})
+                qtd        = int(pedido.get("qtd", 1))
+                dims       = me_dimensoes_para_qtd(qtd)
+
+                # 1. Adicionar ao carrinho
+                unit_val  = round(pedido.get("total", 157) / qtd, 2)
+                ins_value = round(pedido.get("total", 157), 2)  # valor segurado = total do pedido
+                cart_payload = {
+                    "service": service_id,
+                    "from": REMETENTE_CART,
+                    "to": {
+                        "name":        pedido.get("cliente","") or "Cliente PowerMind",
+                        "phone":       pedido.get("telefone","") or "00000000000",
+                        "email":       pedido.get("email","") or "",
+                        "document":    pedido.get("cpf","") or "",
+                        "address":     pedido.get("endereco",""),
+                        "complement":  pedido.get("complemento","") or "",
+                        "number":      pedido.get("numero_end","") or "S/N",
+                        "district":    pedido.get("bairro","") or "Centro",
+                        "city":        pedido.get("cidade",""),
+                        "state_abbr":  pedido.get("estado",""),
+                        "country_id":  "BR",
+                        "postal_code": pedido.get("cep",""),
+                    },
+                    "products": [{
+                        "name":          "PowerMind",
+                        "quantity":      qtd,
+                        "unitary_value": unit_val,
+                    }],
+                    "package": {
+                        "height": dims["height"],
+                        "width":  dims["width"],
+                        "length": dims["length"],
+                        "weight": dims["weight"],
+                    },
+                    "options": {
+                        "receipt":         False,
+                        "own_hand":        False,
+                        "collect":         False,
+                        "reverse":         False,
+                        "insurance_value": ins_value,
+                        "non_commercial":  True,
+                    },
+                    "platform": "PowerMind",
+                    "tag": f"pedido-{pedido.get('numero', pedido.get('id',''))}",
+                }
+                cart_result, cart_code = me_request("POST", "/me/cart", cart_payload)
+                if cart_code >= 400:
+                    raise Exception(f"Erro ao adicionar ao carrinho: {cart_result}")
+
+                order_id = cart_result.get("id")
+
+                # 2. Checkout (paga com saldo ME)
+                checkout_payload = {"orders": [order_id]}
+                checkout_result, checkout_code = me_request("POST", "/me/shipment/checkout", checkout_payload)
+                if checkout_code >= 400:
+                    raise Exception(f"Erro no checkout: {checkout_result}")
+
+                # 3. Gerar etiqueta
+                gen_payload = {"orders": [order_id]}
+                gen_result, gen_code = me_request("POST", "/me/shipment/generate", gen_payload)
+
+                # 4. Retornar link de impressão
+                print_result, _ = me_request("POST", "/me/shipment/print", {"mode": "public", "orders": [order_id]})
+                print_url = print_result.get("url", "")
+
+                # 4b. Buscar tracking code do pedido ME
+                order_detail, _ = me_request("GET", f"/me/shipment/orders/{order_id}", None)
+                tracking_code = order_detail.get("tracking_code") or order_detail.get("tracking","") or ""
+                transportadora = (order_detail.get("service") or {}).get("company", {}).get("name","") or req_data.get("transportadora","")
+
+                # 5. Persistir envio
+                save_expedicao_envio(pedido.get("numero",""), {
+                    "pedido_numero": pedido.get("numero",""),
+                    "pedido_id":     pedido.get("id",""),
+                    "cliente":       pedido.get("cliente",""),
+                    "me_order_id":   order_id,
+                    "tracking_code": tracking_code,
+                    "transportadora":transportadora,
+                    "print_url":     print_url,
+                    "gerado_em":     datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "status":        "gerado",
+                })
+
+                # 6. Baixar estoque automaticamente
+                registrar_movimentacao(
+                    tipo       = "saida_venda",
+                    produto_id = "POWERMIND-1UN",
+                    quantidade = qtd,
+                    origem     = "expedicao",
+                    descricao  = f"Venda despachada — Pedido #{pedido.get('numero','')} | {pedido.get('cliente','')} | {pedido.get('cidade','')}/{pedido.get('estado','')}",
+                    responsavel= "Sistema",
+                    pedido_ref = str(pedido.get("numero","")),
+                )
+
+                resp = json.dumps({
+                    "ok": True,
+                    "order_id": order_id,
+                    "tracking_code": tracking_code,
+                    "transportadora": transportadora,
+                    "print_url": print_url,
+                    "cart": cart_result,
+                    "generate": gen_result,
+                }, ensure_ascii=False).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(resp)
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(json.dumps({"erro": str(e)}).encode())
+
+        elif _path == "/api/expedicao/reimprimir":
+            length = int(self.headers.get("Content-Length",0))
+            body   = self.rfile.read(length)
+            try:
+                req_data = json.loads(body)
+                order_id = req_data.get("order_id","")
+                if not order_id: raise Exception("order_id obrigatório")
+                print_result, _ = me_request("POST", "/me/shipment/print", {"mode":"public","orders":[order_id]})
+                print_url = print_result.get("url","")
+                self.send_response(200)
+                self.send_header("Content-Type","application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin","*")
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok":True,"print_url":print_url}, ensure_ascii=False).encode())
+            except Exception as e:
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.wfile.write(json.dumps({"erro":str(e)}).encode())
+
+        elif _path == "/api/expedicao/cancelar-me":
+            length = int(self.headers.get("Content-Length",0))
+            body   = self.rfile.read(length)
+            try:
+                req_data = json.loads(body)
+                order_id = req_data.get("order_id","")
+                pedido_numero = req_data.get("pedido_numero","")
+                if not order_id: raise Exception("order_id obrigatório")
+                cancel_result, cancel_code = me_request("DELETE", f"/me/shipment/cancel", {"order": order_id})
+                if cancel_code < 400:
+                    # Remover do arquivo local
+                    envios = load_expedicao()
+                    if str(pedido_numero) in envios:
+                        del envios[str(pedido_numero)]
+                        with open(EXPEDICAO_FILE,"w") as f:
+                            json.dump(envios, f, indent=2, ensure_ascii=False)
+                self.send_response(200)
+                self.send_header("Content-Type","application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin","*")
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": cancel_code < 400, "result": cancel_result}, ensure_ascii=False).encode())
+            except Exception as e:
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.wfile.write(json.dumps({"erro":str(e)}).encode())
+
+        elif _path == "/api/expedicao/arquivar":
+            length = int(self.headers.get("Content-Length",0))
+            body   = self.rfile.read(length)
+            try:
+                req_data = json.loads(body)
+                pedido_numero = str(req_data.get("pedido_numero",""))
+                acao = req_data.get("acao","arquivar")  # 'arquivar' ou 'restaurar'
+                motivo = req_data.get("motivo","")
+                if not pedido_numero: raise Exception("pedido_numero obrigatório")
+                arq = load_arquivados()
+                if acao == "restaurar":
+                    arq.pop(pedido_numero, None)
+                else:
+                    arq[pedido_numero] = {
+                        "pedido_numero": pedido_numero,
+                        "motivo": motivo,
+                        "arquivado_em": datetime.now().strftime("%Y-%m-%d %H:%M")
+                    }
+                save_arquivados(arq)
+                self.send_response(200)
+                self.send_header("Content-Type","application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin","*")
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": True, "arquivados": arq}).encode())
+            except Exception as e:
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.wfile.write(json.dumps({"erro":str(e)}).encode())
+
+        elif _path == "/api/expedicao/despachar-todas":
+            """Gera etiquetas para todos os pedidos aguardando envio usando o serviço mais barato."""
+            try:
+                pedidos = pedidos_aguardando_expedicao()
+                resultados = []
+                for pedido in pedidos:
+                    try:
+                        # Cotar e pegar o mais barato
+                        dims = pedido["dimensoes"]
+                        calc_payload = {
+                            "from": {"postal_code": REMETENTE["postal_code"]},
+                            "to":   {"postal_code": pedido["cep"]},
+                            "package": {
+                                "height": dims["height"],
+                                "width":  dims["width"],
+                                "length": dims["length"],
+                                "weight": dims["weight"],
+                            },
+                            "options": {"receipt": False, "own_hand": False, "collect": False},
+                        }
+                        cotacoes, _ = me_request("POST", "/me/shipment/calculate", calc_payload)
+                        # Filtrar serviços disponíveis e pegar mais barato
+                        disponiveis = [c for c in (cotacoes if isinstance(cotacoes, list) else []) if not c.get("error")]
+                        if not disponiveis:
+                            resultados.append({"pedido": pedido["numero"], "ok": False, "erro": "Nenhuma cotação disponível"})
+                            continue
+                        mais_barato = min(disponiveis, key=lambda c: float(c.get("price", 9999)))
+                        service_id = mais_barato.get("id")
+
+                        # Gerar etiqueta via lógica interna reutilizada
+                        _u = round(pedido.get("total", 157) / pedido["qtd"], 2)
+                        _i = round(pedido.get("total", 157), 2)
+                        cart_payload = {
+                            "service": service_id,
+                            "from": REMETENTE_CART,
+                            "to": {
+                                "name":        pedido.get("cliente","") or "Cliente PowerMind",
+                                "phone":       pedido.get("telefone","") or "00000000000",
+                                "email":       pedido.get("email","") or "",
+                                "document":    pedido.get("cpf","") or "",
+                                "address":     pedido.get("endereco",""),
+                                "complement":  pedido.get("complemento","") or "",
+                                "number":      pedido.get("numero_end","") or "S/N",
+                                "district":    pedido.get("bairro","") or "Centro",
+                                "city":        pedido.get("cidade",""),
+                                "state_abbr":  pedido.get("estado",""),
+                                "country_id":  "BR",
+                                "postal_code": pedido.get("cep",""),
+                            },
+                            "products": [{"name": "PowerMind", "quantity": pedido["qtd"], "unitary_value": _u}],
+                            "package": dims,
+                            "options": {"receipt": False, "own_hand": False, "collect": False, "reverse": False, "insurance_value": _i, "non_commercial": True},
+                            "platform": "PowerMind",
+                            "tag": f"pedido-{pedido.get('numero', pedido.get('id',''))}",
+                        }
+                        cart_r, cart_c = me_request("POST", "/me/cart", cart_payload)
+                        if cart_c >= 400:
+                            resultados.append({"pedido": pedido["numero"], "ok": False, "erro": str(cart_r)})
+                            continue
+                        order_id = cart_r.get("id")
+                        me_request("POST", "/me/shipment/checkout", {"orders": [order_id]})
+                        me_request("POST", "/me/shipment/generate", {"orders": [order_id]})
+                        print_r, _ = me_request("POST", "/me/shipment/print", {"mode": "public", "orders": [order_id]})
+                        resultados.append({
+                            "pedido":    pedido["numero"],
+                            "cliente":   pedido["cliente"],
+                            "ok":        True,
+                            "order_id":  order_id,
+                            "print_url": print_r.get("url",""),
+                            "transportadora": mais_barato.get("name",""),
+                            "preco":     mais_barato.get("price",""),
+                        })
+                    except Exception as ex:
+                        resultados.append({"pedido": pedido.get("numero","?"), "ok": False, "erro": str(ex)})
+
+                resp = json.dumps({"resultados": resultados, "total": len(resultados)}, ensure_ascii=False).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(resp)
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(json.dumps({"erro": str(e)}).encode())
+
         else:
             self.send_response(404)
             self.end_headers()
@@ -2388,6 +3367,8 @@ if __name__ == "__main__":
     print(f"🚀 PowerMind Dashboard — http://localhost:{PORT}")
     # Virada de mês — arquiva lançamentos do mês anterior se necessário
     virar_mes_se_necessario()
+    # Migra campos de afiliada em creators.json
+    migrate_afiliada_fields()
     # Reconcilia pedidos de hoje com a API Yampi (recupera webhooks perdidos) — loop a cada 10 min
     Thread(target=_loop_reconciliar_yampi, daemon=True).start()
     # Pré-carrega dados em background
