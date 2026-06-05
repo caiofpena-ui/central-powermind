@@ -66,6 +66,7 @@ tr:hover td{background:#1e2130}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed}
 .btn-secondary{background:#252836;color:#aaa;border:1px solid #3d4060;border-radius:8px;padding:10px 16px;font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s}
 .btn-secondary:hover{color:#e0e0e0;border-color:#6b7280}
+.wpp-icon{display:inline-block;width:17px;height:17px;vertical-align:middle;margin-right:6px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%2325D366'/%3E%3Cpath fill='%23fff' d='M22.5 9.5A9.1 9.1 0 0 0 16 7a9 9 0 0 0-7.8 13.5L7 25l4.6-1.2A9 9 0 0 0 25 16a9.1 9.1 0 0 0-2.5-6.5zm-6.5 13.9a7.5 7.5 0 0 1-3.8-1l-.3-.2-2.7.7.7-2.7-.2-.3A7.5 7.5 0 1 1 16 23.4zm4.1-5.6c-.2-.1-1.3-.6-1.5-.7s-.4-.1-.5.1l-.6.8c-.1.2-.2.2-.4.1a6 6 0 0 1-1.8-1.1 6.7 6.7 0 0 1-1.2-1.5c-.1-.2 0-.4.1-.5l.3-.4.2-.4v-.4l-.7-1.6c-.2-.4-.4-.4-.5-.4h-.5a.9.9 0 0 0-.7.3 2.8 2.8 0 0 0-.9 2.1 4.9 4.9 0 0 0 1 2.6 11.2 11.2 0 0 0 4.3 3.8c.6.3 1.1.4 1.5.5a3.6 3.6 0 0 0 1.6.1 2.6 2.6 0 0 0 1.7-1.2 2.1 2.1 0 0 0 .1-1.2c-.1-.1-.3-.2-.5-.3z'/%3E%3C/svg%3E") center/contain no-repeat}
 .loader{display:inline-block;width:16px;height:16px;border:2px solid #3b82f640;border-top-color:#3b82f6;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .mock-warning{background:#2d2a14;border:1px solid #facc1540;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#facc15;margin-bottom:16px;display:none}
@@ -119,6 +120,7 @@ tr:hover td{background:#1e2130}
   <div class="tab" onclick="switchTab('scripts')">&#127775; Produzir Prompt</div>
   <div class="tab" onclick="switchTab('agenda')">&#128197; Agenda</div>
   <div class="tab" onclick="switchTab('analytics')">Analytics</div>
+  <div class="tab" onclick="switchTab('afiliadas')">Afiliadas</div>
 </div>
 
 <!-- ABA 1: LISTA -->
@@ -191,7 +193,7 @@ tr:hover td{background:#1e2130}
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:2px">
           <p id="preview-username" style="color:#3b82f6;margin:0"></p>
           <span id="preview-whatsapp" style="display:none;align-items:center;gap:5px;background:#14291a;border:1px solid #25d36650;border-radius:20px;padding:3px 10px;font-size:.78rem;color:#4ade80;font-weight:600">
-            📲 <span id="preview-whatsapp-num"></span>
+            <span class="wpp-icon"></span><span id="preview-whatsapp-num"></span>
           </span>
         </div>
         <p id="preview-bio" style="margin-top:6px;font-size:.78rem;color:#666;max-width:400px"></p>
@@ -222,9 +224,26 @@ tr:hover td{background:#1e2130}
           </div>
           <div class="form-group">
             <label>WhatsApp <span style="color:#ef4444">*</span></label>
-            <input type="text" id="f-whatsapp" placeholder="(11) 99999-9999" maxlength="15"
-              oninput="mascararTel(this); atualizarPreviewWhatsApp(this.value)">
-            <small style="color:#6b7280;font-size:11px">Usado para enviar links de preenchimento</small>
+            <input type="text" id="f-whatsapp" placeholder="(11) 99999-9999" maxlength="15" required
+              oninput="mascararTel(this); atualizarPreviewWhatsApp(this.value)"
+              style="border-color:#3b82f6">
+            <small style="color:#ef4444;font-size:11px">⚠️ Obrigatório — usado para enviar a mensagem de primeiro contato</small>
+          </div>
+          <div class="form-group">
+            <label>Gênero <span style="color:#ef4444">*</span></label>
+            <select id="f-genero" required style="border-color:#3b82f6">
+              <option value="">Selecione</option>
+              <option value="Mulher">Mulher</option>
+              <option value="Homem">Homem</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Como chegou até nós? <span style="color:#ef4444">*</span></label>
+            <select id="f-iniciativa" required style="border-color:#3b82f6">
+              <option value="">Selecione</option>
+              <option value="nos_procuramos">Nós procuramos o creator</option>
+              <option value="nos_procurou">O creator nos procurou</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Perfil Instagram</label>
@@ -485,8 +504,8 @@ tr:hover td{background:#1e2130}
         <div id="crm-contrato-status" style="display:none;margin-top:16px;border-radius:8px;padding:10px 14px;font-size:.82rem;font-weight:700"></div>
 
         <div style="display:flex;gap:10px;margin-top:12px">
-          <button onclick="verContrato()" style="flex:1;background:#1e293b;border:1px solid #3b82f6;color:#3b82f6;border-radius:8px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">👁 Ver Contrato</button>
-          <button onclick="enviarContratoWpp()" style="flex:1;background:#059669;border:none;color:#fff;border-radius:8px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">📲 Enviar via WhatsApp</button>
+          <button type="button" onclick="verContrato()" style="flex:1;background:#1e293b;border:1px solid #3b82f6;color:#3b82f6;border-radius:8px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">👁 Ver Contrato</button>
+          <button type="button" onclick="enviarContratoWpp()" style="flex:1;background:#059669;border:none;color:#fff;border-radius:8px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer"><span class="wpp-icon"></span>Enviar via WhatsApp</button>
         </div>
       </div>
 
@@ -505,81 +524,149 @@ tr:hover td{background:#1e2130}
       </div>
 
       <div class="card" style="margin-bottom:20px;border:1px solid #3b82f640">
-        <div class="section-title" style="display:flex;align-items:center;gap:8px">
-          <span>📦</span> Dados Pessoais para Envio de Produto
-          <span style="font-size:11px;font-weight:400;color:#6b7280;margin-left:4px">(preenchimento manual pelo creator)</span>
+        <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span>📦</span> Dados Pessoais para Envio de Produto
+          </div>
+          <button type="button" id="btn-editar-endereco" onclick="editarEndereco()" style="display:none;background:#1e3a5f;border:1px solid #3b82f6;color:#3b82f6;border-radius:6px;padding:5px 14px;font-size:.75rem;font-weight:700;cursor:pointer">Editar</button>
         </div>
 
-        <div class="form-grid" style="margin-bottom:16px">
-          <div class="form-group">
-            <label>CPF <span style="color:#ef4444">*</span></label>
-            <input type="text" id="f-cpf" placeholder="000.000.000-00" maxlength="14"
-              oninput="mascararCPF(this)"
-              style="border-color: var(--cpf-border, #3d4060)">
-            <small id="f-cpf-hint" style="color:#6b7280;font-size:11px">Necessário para nota fiscal do produto</small>
-          </div>
-          <div class="form-group">
-            <label>WhatsApp / Telefone <span style="color:#ef4444">*</span></label>
-            <input type="text" id="f-telefone" placeholder="(11) 99999-9999" maxlength="15"
-              oninput="mascararTel(this)">
-            <small style="color:#6b7280;font-size:11px">Para confirmar o endereço e rastreio</small>
+        <!-- Visualização travada (preenchido) -->
+        <div id="endereco-view" style="display:none;background:#0f1117;border-radius:8px;padding:14px 16px;border:1px solid #16a34a40;margin-bottom:12px">
+          <div style="font-size:.72rem;color:#4ade80;font-weight:700;letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase">Dados confirmados pelo creator</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:.82rem;color:#d1d5db;line-height:1.6">
+            <div><span style="color:#6b7280">CPF:</span> <span id="ev-cpf" style="color:#fff;font-weight:600"></span></div>
+            <div><span style="color:#6b7280">Telefone:</span> <span id="ev-telefone" style="color:#fff;font-weight:600"></span></div>
+            <div><span style="color:#6b7280">CEP:</span> <span id="ev-cep" style="color:#3b82f6;font-weight:600"></span></div>
+            <div><span style="color:#6b7280">Rua:</span> <span id="ev-rua"></span></div>
+            <div><span style="color:#6b7280">Número:</span> <span id="ev-numero"></span> <span id="ev-complemento" style="color:#6b7280"></span></div>
+            <div><span style="color:#6b7280">Bairro:</span> <span id="ev-bairro"></span></div>
+            <div><span style="color:#6b7280">Cidade/UF:</span> <span id="ev-cidade"></span></div>
           </div>
         </div>
 
-        <div style="background:#0f1117;border-radius:8px;padding:16px;border:1px dashed #3d4060">
-          <div style="font-size:12px;color:#3b82f6;font-weight:600;margin-bottom:12px;letter-spacing:.5px">ENDEREÇO DE ENTREGA</div>
-          <div class="form-grid">
+        <!-- Formulário de edição (oculto quando preenchido) -->
+        <div id="endereco-form">
+          <div class="form-grid" style="margin-bottom:16px">
             <div class="form-group">
-              <label>CEP <span style="color:#ef4444">*</span></label>
-              <div style="display:flex;gap:8px">
-                <input type="text" id="f-cep" placeholder="00000-000" maxlength="9"
-                  oninput="mascararCEP(this)" style="flex:1">
-                <button type="button" onclick="buscarCEP()" style="background:#3b82f6;border:none;color:#fff;padding:0 14px;border-radius:8px;cursor:pointer;font-size:12px;white-space:nowrap">
-                  🔍 Buscar
-                </button>
+              <label>CPF <span style="color:#ef4444">*</span></label>
+              <input type="text" id="f-cpf" placeholder="000.000.000-00" maxlength="14"
+                oninput="mascararCPF(this)"
+                style="border-color: var(--cpf-border, #3d4060)">
+              <small id="f-cpf-hint" style="color:#6b7280;font-size:11px">Necessário para nota fiscal do produto</small>
+            </div>
+            <div class="form-group">
+              <label>WhatsApp / Telefone <span style="color:#ef4444">*</span></label>
+              <input type="text" id="f-telefone" placeholder="(11) 99999-9999" maxlength="15"
+                oninput="mascararTel(this)">
+              <small style="color:#6b7280;font-size:11px">Para confirmar o endereço e rastreio</small>
+            </div>
+          </div>
+
+          <div style="background:#0f1117;border-radius:8px;padding:16px;border:1px dashed #3d4060">
+            <div style="font-size:12px;color:#3b82f6;font-weight:600;margin-bottom:12px;letter-spacing:.5px">ENDEREÇO DE ENTREGA</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>CEP <span style="color:#ef4444">*</span></label>
+                <div style="display:flex;gap:8px">
+                  <input type="text" id="f-cep" placeholder="00000-000" maxlength="9"
+                    oninput="mascararCEP(this)" style="flex:1">
+                  <button type="button" onclick="buscarCEP()" style="background:#3b82f6;border:none;color:#fff;padding:0 14px;border-radius:8px;cursor:pointer;font-size:12px;white-space:nowrap">
+                    Buscar
+                  </button>
+                </div>
+                <small id="cep-status" style="font-size:11px;color:#6b7280"></small>
               </div>
-              <small id="cep-status" style="font-size:11px;color:#6b7280"></small>
+              <div class="form-group">
+                <label>Rua / Avenida <span style="color:#ef4444">*</span></label>
+                <input type="text" id="f-rua" placeholder="Ex: Rua das Flores">
+              </div>
+              <div class="form-group" style="max-width:120px">
+                <label>Número <span style="color:#ef4444">*</span></label>
+                <input type="text" id="f-numero" placeholder="Ex: 123">
+              </div>
+              <div class="form-group">
+                <label>Complemento</label>
+                <input type="text" id="f-complemento" placeholder="Apto, Bloco, Casa...">
+              </div>
+              <div class="form-group">
+                <label>Bairro <span style="color:#ef4444">*</span></label>
+                <input type="text" id="f-bairro" placeholder="Ex: Centro">
+              </div>
+              <div class="form-group">
+                <label>Cidade <span style="color:#ef4444">*</span></label>
+                <input type="text" id="f-cidade-env" placeholder="Ex: São Paulo">
+              </div>
+              <div class="form-group" style="max-width:100px">
+                <label>Estado <span style="color:#ef4444">*</span></label>
+                <select id="f-estado" style="background:#1a1d27;border:1px solid #3d4060;color:#e2e8f0;padding:10px;border-radius:8px;width:100%">
+                  <option value="">UF</option>
+                  <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+                  <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+                  <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+                  <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+                  <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                  <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+                  <option>SP</option><option>SE</option><option>TO</option>
+                </select>
+              </div>
             </div>
-            <div class="form-group">
-              <label>Rua / Avenida <span style="color:#ef4444">*</span></label>
-              <input type="text" id="f-rua" placeholder="Ex: Rua das Flores">
-            </div>
-            <div class="form-group" style="max-width:120px">
-              <label>Número <span style="color:#ef4444">*</span></label>
-              <input type="text" id="f-numero" placeholder="Ex: 123">
-            </div>
-            <div class="form-group">
-              <label>Complemento</label>
-              <input type="text" id="f-complemento" placeholder="Apto, Bloco, Casa...">
-            </div>
-            <div class="form-group">
-              <label>Bairro <span style="color:#ef4444">*</span></label>
-              <input type="text" id="f-bairro" placeholder="Ex: Centro">
-            </div>
-            <div class="form-group">
-              <label>Cidade <span style="color:#ef4444">*</span></label>
-              <input type="text" id="f-cidade-env" placeholder="Ex: São Paulo">
-            </div>
-            <div class="form-group" style="max-width:100px">
-              <label>Estado <span style="color:#ef4444">*</span></label>
-              <select id="f-estado" style="background:#1a1d27;border:1px solid #3d4060;color:#e2e8f0;padding:10px;border-radius:8px;width:100%">
-                <option value="">UF</option>
-                <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
-                <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
-                <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
-                <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
-                <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
-                <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
-                <option>SP</option><option>SE</option><option>TO</option>
-              </select>
-            </div>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+            <button type="button" onclick="salvarEnderecoManual()" id="btn-salvar-endereco"
+              style="background:#059669;border:none;color:#fff;border-radius:8px;padding:10px 22px;font-size:.85rem;font-weight:700;cursor:pointer">
+              💾 Salvar Endereço
+            </button>
+            <span id="msg-salvar-endereco" style="font-size:.78rem;color:#4ade80;display:none">Endereço salvo com sucesso!</span>
           </div>
         </div>
 
         <!-- Status + link ficha -->
         <div id="crm-ficha-status" style="display:none;border-radius:8px;padding:10px 14px;font-size:.82rem;font-weight:700;margin-top:14px"></div>
-        <div style="display:flex;gap:10px;margin-top:12px">
-          <button onclick="enviarFichaWpp()" style="flex:1;background:#25d366;border:none;color:#fff;border-radius:8px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">📲 Enviar Ficha via WhatsApp</button>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <button type="button" onclick="enviarFichaWpp()" style="flex:1;background:#25d366;border:none;color:#fff;border-radius:8px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer"><span class="wpp-icon"></span>Enviar Ficha via WhatsApp</button>
+          <button type="button" onclick="abrirEnvioMelhorEnvio()" id="btn-gerar-etiqueta-creator"
+            style="flex:1;background:#1a3a5c;border:1px solid #3b82f6;color:#3b82f6;border-radius:8px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">
+            🚚 Enviar Produto — Melhor Envio
+          </button>
+        </div>
+
+        <!-- Painel Melhor Envio inline -->
+        <div id="painel-melhor-envio" style="display:none;margin-top:14px;background:#0a1628;border:1px solid #3b82f6;border-radius:10px;padding:16px">
+          <div style="color:#3b82f6;font-weight:700;font-size:.85rem;margin-bottom:12px">🚚 Envio de Produto — Melhor Envio</div>
+
+          <!-- Resumo do destinatário -->
+          <div id="me-destinatario-resumo" style="background:#111827;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:#d1d5db;line-height:1.7"></div>
+
+          <!-- CEP manual (caso não preenchido na ficha) -->
+          <div id="me-cep-manual-wrap" style="display:none;margin-bottom:10px">
+            <label style="font-size:.75rem;color:#9ca3af;display:block;margin-bottom:4px">CEP do destinatario</label>
+            <div style="display:flex;gap:6px">
+              <input type="text" id="me-cep-manual" placeholder="00000-000" maxlength="9"
+                oninput="this.value=this.value.replace(/\D/g,'').replace(/^(\d{5})(\d)/,'$1-$2')"
+                style="background:#0f1117;border:1px solid #3b82f6;border-radius:6px;color:#fff;padding:7px 10px;font-size:.82rem;width:130px">
+              <button type="button" onclick="aplicarCEPManual()" style="background:#3b82f6;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-size:.8rem;cursor:pointer;font-weight:600">Usar este CEP</button>
+            </div>
+          </div>
+
+          <!-- Cotação -->
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+            <select id="me-qtd-creator" style="background:#1a1d27;color:#fff;border:1px solid #3d4060;border-radius:6px;padding:6px 10px;font-size:.82rem">
+              <option value="1">1 Pacote</option>
+              <option value="2">Power Duo (2x)</option>
+              <option value="3">3 Pacotes</option>
+              <option value="6">6 Pacotes</option>
+            </select>
+            <button type="button" onclick="cotarCreator()" style="background:#3b82f6;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-size:.82rem;cursor:pointer;font-weight:700">
+              Cotar Frete
+            </button>
+          </div>
+
+          <!-- Opções de frete -->
+          <div id="me-opcoes-frete" style="margin-bottom:12px"></div>
+
+          <!-- Status do envio -->
+          <div id="me-status-envio" style="font-size:.82rem;min-height:20px"></div>
         </div>
       </div>
 
@@ -605,18 +692,18 @@ tr:hover td{background:#1e2130}
             <input type="text" id="crm-video-link-input" readonly
               style="flex:1;background:#13151f;border:1px solid #f59e0b60;border-radius:8px;color:#fbbf24;padding:9px 12px;font-size:.82rem;cursor:pointer"
               onclick="this.select();document.execCommand('copy');mostrarToast('Link copiado!')">
-            <button onclick="abrirVideoLink()" style="background:#1a2a1a;border:1px solid #f59e0b60;color:#fbbf24;border-radius:8px;padding:0 14px;cursor:pointer;font-size:.8rem;font-weight:600;white-space:nowrap">↗ Abrir</button>
+            <button type="button" onclick="abrirVideoLink()" style="background:#1a2a1a;border:1px solid #f59e0b60;color:#fbbf24;border-radius:8px;padding:0 14px;cursor:pointer;font-size:.8rem;font-weight:600;white-space:nowrap">↗ Abrir</button>
           </div>
         </div>
 
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button onclick="criarPastaVideo()" id="btn-criar-pasta-video"
+          <button type="button" onclick="criarPastaVideo()" id="btn-criar-pasta-video"
             style="flex:1;min-width:150px;background:#92400e;border:1px solid #f59e0b60;color:#fbbf24;border-radius:8px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">
             📁 Criar Pasta no Drive
           </button>
-          <button onclick="enviarVideoLinkWpp()" id="btn-video-wpp"
+          <button type="button" onclick="enviarVideoLinkWpp()" id="btn-video-wpp"
             style="flex:1;min-width:150px;background:#25d366;border:none;color:#fff;border-radius:8px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer;display:none">
-            📲 Enviar Link via WhatsApp
+            <span class="wpp-icon"></span>Enviar Link via WhatsApp
           </button>
         </div>
       </div>
@@ -702,7 +789,7 @@ tr:hover td{background:#1e2130}
           </button>
           <button onclick="enviarScriptWhatsApp()" id="btn-chat-whatsapp"
             style="flex:1;background:#25d366;border:none;color:#fff;padding:10px 0;border-radius:8px;cursor:pointer;font-weight:700;font-size:.85rem">
-            &#128242; Enviar p/ Creator
+            <span class="wpp-icon"></span>Enviar p/ Creator
           </button>
         </div>
         <div style="font-size:.7rem;color:#555;margin-top:6px">Ctrl+Enter para enviar</div>
@@ -807,6 +894,43 @@ tr:hover td{background:#1e2130}
   </div>
 </div>
 
+<!-- ABA 6: AFILIADAS -->
+<div id="tab-afiliadas" class="tab-content">
+  <div class="container">
+    <!-- KPI row -->
+    <div class="analytics-grid" id="afiliadas-kpis" style="margin-bottom:24px">
+      <div class="metric-card" style="--c:#7c3aed"><div class="val" id="af-ativas">—</div><div class="lbl">Afiliadas Ativas</div></div>
+      <div class="metric-card" style="--c:#3b82f6"><div class="val" id="af-vendas">—</div><div class="lbl">Vendas via Afiliadas (mês)</div></div>
+      <div class="metric-card" style="--c:#fbbf24"><div class="val" id="af-pendente">—</div><div class="lbl">Comissão a Pagar</div></div>
+      <div class="metric-card" style="--c:#34d399"><div class="val" id="af-total-pago">—</div><div class="lbl">Total Pago</div></div>
+    </div>
+
+    <!-- Actions bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:1rem 0">
+      <h3 style="font-size:1rem;font-weight:700;color:#fff">Afiliadas Ativas</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn-primary" onclick="pagarTodasAfiliadas()" id="btn-pagar-todas">Pagar Todas</button>
+        <button class="btn-secondary" onclick="abrirModalAtivarAfiliada()">Ativar Afiliada</button>
+      </div>
+    </div>
+
+    <!-- Afiliadas table -->
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Creator</th><th>Cupom</th><th>Vendas mês</th>
+              <th>Faturamento</th><th>Comissão devida</th><th>Total pago</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="afiliadas-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal detalhes -->
 <div class="modal-overlay" id="modal-overlay" style="display:none" onclick="closeModalOuter(event)">
   <div class="modal">
@@ -878,11 +1002,12 @@ function switchTab(name){
   document.querySelectorAll('.tab-content').forEach(function(el){ el.classList.remove('active'); });
   document.querySelectorAll('.tab').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById('tab-'+name).classList.add('active');
-  var idx = {lista:0,cadastro:1,analytics:2,scripts:3,agenda:4}[name];
+  var idx = {lista:0,cadastro:1,analytics:2,scripts:3,agenda:4,afiliadas:5}[name];
   document.querySelectorAll('.tab')[idx].classList.add('active');
   if(name==='analytics') renderAnalytics();
   if(name==='scripts') popularSelectCreators();
   if(name==='agenda') carregarAgenda();
+  if(name==='afiliadas') carregarAfiliadas();
 }
 
 // ── Carregar creators
@@ -1006,20 +1131,24 @@ function renderTable(creators){
       btnWrap.appendChild(bDownload);
     }
     var bWhats = document.createElement('button');
-    bWhats.textContent = '📲 Contrato';
+    bWhats.innerHTML = '<span class="wpp-icon"></span>Enviar Contrato';
     bWhats.title = 'Enviar link do contrato via WhatsApp';
     bWhats.style.cssText = 'background:#16a34a;border:none;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600;transition:.2s';
     bWhats.addEventListener('click', (function(cr){ return function(){ enviarContratoWhatsApp(cr.username, resolverWhatsApp(cr)); }; })(c));
     var bChat = document.createElement('button');
-    bChat.textContent = '💬 Chat';
+    bChat.innerHTML = '<span class="wpp-icon"></span>Chat';
     bChat.title = 'Abrir conversa direta no WhatsApp';
     bChat.style.cssText = 'background:#075e54;border:none;color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600;transition:.2s';
     bChat.addEventListener('click', (function(cr){ return function(){
       var tel = resolverWhatsApp(cr);
       if(!tel){ alert('Nenhum WhatsApp cadastrado para ' + (cr.nome||cr.username) + '.'); return; }
-      var num = tel.replace(/\D/g,'');
-      if(num.length <= 11) num = '55' + num;
-      window.open('https://wa.me/' + num, '_blank');
+      // Se tem gênero e iniciativa, usa o modal com script personalizado
+      if(cr.genero && cr.iniciativa){
+        abrirModalPrimeiraMsg(cr.nome || cr.username, tel, cr.genero, cr.iniciativa);
+      } else {
+        // Creator antigo sem esses campos — abre seletor de script
+        abrirModalPrimeiraMsgSeletor(cr.nome || cr.username, tel);
+      }
     }; })(c));
     btnWrap.appendChild(bVer); btnWrap.appendChild(bEdit); btnWrap.appendChild(bDel); btnWrap.appendChild(bContrato); btnWrap.appendChild(bWhats); btnWrap.appendChild(bChat);
     tdAcoes.appendChild(btnWrap);
@@ -1191,6 +1320,12 @@ async function salvarCreator(e){
   var posts = parseInt(document.getElementById('f-posts').value)||0;
   var cat = document.getElementById('f-categoria').value;
   var nicho = document.getElementById('f-nicho').value;
+  var wpp = document.getElementById('f-whatsapp').value.trim();
+  var genero = document.getElementById('f-genero').value;
+  var iniciativa = document.getElementById('f-iniciativa').value;
+  if(!wpp){ alert('WhatsApp é obrigatório para cadastrar um creator.'); document.getElementById('f-whatsapp').focus(); return; }
+  if(!genero){ alert('Selecione o gênero do creator.'); document.getElementById('f-genero').focus(); return; }
+  if(!iniciativa){ alert('Informe como o creator chegou até nós.'); document.getElementById('f-iniciativa').focus(); return; }
   var payload = {
     username: document.getElementById('f-username').value.trim(),
     nome: document.getElementById('f-nome').value.trim(),
@@ -1204,7 +1339,9 @@ async function salvarCreator(e){
     cidade: document.getElementById('f-cidade').value.trim(),
     link_instagram: document.getElementById('f-instagram').value.trim(),
     link_tiktok: document.getElementById('f-tiktok').value.trim(),
-    whatsapp: document.getElementById('f-whatsapp').value.trim(),
+    whatsapp: wpp,
+    genero: genero,
+    iniciativa: iniciativa,
     tier: calcTier(seg),
     score: calcScore(seg, posts),
     compatibilidade: calcCompat(cat, nicho),
@@ -1251,6 +1388,13 @@ async function salvarCreator(e){
         btn.textContent = 'Salvar Creator';
         btn.style.background = '';
         btn.disabled = false;
+        // Abre modal de primeira mensagem com script correto
+        abrirModalPrimeiraMsg(
+          payload.nome,
+          payload.whatsapp,
+          payload.genero,
+          payload.iniciativa
+        );
         limparFormulario();
         switchTab('lista');
       }, 1200);
@@ -1288,7 +1432,21 @@ function editarCreator(username){
   });
   setVal('f-whatsapp', c.whatsapp||''); atualizarPreviewWhatsApp(c.whatsapp||''); setVal('f-cpf', c.cpf); setVal('f-telefone', c.telefone);
   setVal('f-observacoes', c.observacoes||'');
-  preencherEndereco(c.endereco||'');
+  // Preencher endereço — usa campos separados se disponíveis, senão parseia o campo combinado
+  if(c.cep || c.rua){
+    setVal('f-cep', c.cep||'');
+    setVal('f-rua', c.rua||'');
+    setVal('f-numero', c.numero_end||'');
+    setVal('f-complemento', c.complemento||'');
+    setVal('f-bairro', c.bairro||'');
+    setVal('f-cidade-env', c.cidade_end||'');
+    var selEst = document.getElementById('f-estado');
+    if(selEst && c.estado){ for(var ei=0;ei<selEst.options.length;ei++){ if(selEst.options[ei].value===c.estado){ selEst.selectedIndex=ei; break; } } }
+  } else {
+    preencherEndereco(c.endereco||'');
+  }
+  // Travar/liberar campo de endereço conforme preenchimento
+  atualizarModoEndereco(c);
   document.getElementById('f-status').value = c.status||'Em análise';
   // Acordo
   var ac = c.acordo || {};
@@ -1318,16 +1476,56 @@ function editarCreator(username){
     }
   }
 
-  // Badge status do contrato
+  // Badge status do contrato — verifica no arquivo separado (trava)
   var crmBadge = document.getElementById('crm-contrato-status');
   if(crmBadge){
-    if(c.contrato_assinado){
-      crmBadge.style.cssText = 'display:flex;align-items:center;gap:10px;margin-top:16px;border-radius:8px;padding:10px 14px;font-size:.82rem;font-weight:700;background:#052e16;border:1px solid #16a34a;color:#4ade80';
-      crmBadge.innerHTML = '<span style="font-size:1.2rem">✅</span><div><div>Contrato Assinado</div><div style="font-weight:400;font-size:.75rem;color:#86efac">em '+( c.contrato_assinado_em||'—')+'</div></div>';
-    } else {
-      crmBadge.style.cssText = 'display:flex;align-items:center;gap:10px;margin-top:16px;border-radius:8px;padding:10px 14px;font-size:.82rem;font-weight:700;background:#1c1106;border:1px solid #d97706;color:#fbbf24';
-      crmBadge.innerHTML = '<span style="font-size:1.2rem">⏳</span><div><div>Aguardando Assinatura</div><div style="font-weight:400;font-size:.75rem;color:#fde68a">Contrato não assinado ainda</div></div>';
-    }
+    fetch('/api/creator/contrato-salvo?u=' + encodeURIComponent(c.username))
+      .then(function(r){ return r.json(); })
+      .then(function(ct){
+        if(ct.ok){
+          crmBadge.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;border-radius:8px;padding:10px 14px;font-size:.82rem;font-weight:700;background:#052e16;border:1px solid #16a34a;color:#4ade80';
+          crmBadge.textContent = '';
+          var info = document.createElement('div');
+          info.style.display='flex'; info.style.alignItems='center'; info.style.gap='10px';
+          var ico = document.createElement('span'); ico.style.fontSize='1.2rem'; ico.textContent='✅';
+          var txt = document.createElement('div');
+          var l1 = document.createElement('div'); l1.textContent = 'Contrato Assinado e Salvo';
+          var l2 = document.createElement('div'); l2.style.cssText='font-weight:400;font-size:.75rem;color:#86efac';
+          l2.textContent = 'em ' + (ct.data_assinatura||'—') + ' · salvo em ' + (ct.salvo_em||'—');
+          txt.appendChild(l1); txt.appendChild(l2);
+          info.appendChild(ico); info.appendChild(txt);
+          var btnVer = document.createElement('a');
+          btnVer.href = (typeof BASE_URL!=='undefined'?BASE_URL:window.location.origin) + '/contrato?u=' + encodeURIComponent(c.username) + '&print=1';
+          btnVer.target = '_blank';
+          btnVer.style.cssText = 'background:#16a34a;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap';
+          btnVer.textContent = 'Ver / Baixar PDF';
+          crmBadge.appendChild(info);
+          crmBadge.appendChild(btnVer);
+        } else if(c.contrato_assinado){
+          // Assinado no creators.json mas ainda não no arquivo separado (legado)
+          crmBadge.style.cssText = 'display:flex;align-items:center;gap:10px;margin-top:16px;border-radius:8px;padding:10px 14px;font-size:.82rem;font-weight:700;background:#052e16;border:1px solid #16a34a;color:#4ade80';
+          crmBadge.textContent = '';
+          var ico2 = document.createElement('span'); ico2.style.fontSize='1.2rem'; ico2.textContent='✅';
+          var txt2 = document.createElement('div');
+          var l1b = document.createElement('div'); l1b.textContent = 'Contrato Assinado';
+          var l2b = document.createElement('div'); l2b.style.cssText='font-weight:400;font-size:.75rem;color:#86efac'; l2b.textContent = 'em ' + (c.contrato_assinado_em||'—');
+          txt2.appendChild(l1b); txt2.appendChild(l2b);
+          crmBadge.appendChild(ico2); crmBadge.appendChild(txt2);
+        } else {
+          crmBadge.style.cssText = 'display:flex;align-items:center;gap:10px;margin-top:16px;border-radius:8px;padding:10px 14px;font-size:.82rem;font-weight:700;background:#1c1106;border:1px solid #d97706;color:#fbbf24';
+          crmBadge.textContent = '';
+          var ico3 = document.createElement('span'); ico3.style.fontSize='1.2rem'; ico3.textContent='⏳';
+          var txt3 = document.createElement('div');
+          var l1c = document.createElement('div'); l1c.textContent = 'Aguardando Assinatura';
+          var l2c = document.createElement('div'); l2c.style.cssText='font-weight:400;font-size:.75rem;color:#fde68a'; l2c.textContent = 'Contrato nao assinado ainda';
+          txt3.appendChild(l1c); txt3.appendChild(l2c);
+          crmBadge.appendChild(ico3); crmBadge.appendChild(txt3);
+        }
+      })
+      .catch(function(){
+        crmBadge.style.cssText = 'display:flex;align-items:center;gap:10px;margin-top:16px;border-radius:8px;padding:10px 14px;font-size:.82rem;font-weight:700;background:#1c1106;border:1px solid #d97706;color:#fbbf24';
+        crmBadge.textContent = 'Status do contrato indisponivel';
+      });
   }
   // Status vídeos
   atualizarStatusVideo(c.video_drive_link || '', c.video_pasta_em || '');
@@ -1415,7 +1613,7 @@ function verDetalhes(username){
         btn.style.cssText = 'background:#7c3aed;border:none;color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600';
         btn.addEventListener('click', function(){ copiarLinkContrato(c.username); });
         var btnW = document.createElement('button');
-        btnW.textContent = '📲 Enviar WhatsApp';
+        btnW.innerHTML = '<span class="wpp-icon"></span>Enviar WhatsApp';
         btnW.style.cssText = 'background:#16a34a;border:none;color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600';
         btnW.addEventListener('click', function(){ enviarContratoWhatsApp(c.username, resolverWhatsApp(c)); });
         btnRow.appendChild(btn); btnRow.appendChild(btnW);
@@ -1542,6 +1740,78 @@ function mascararCEP(el){
   v = v.replace(/(\d{5})(\d)/,'$1-$2');
   el.value = v;
 }
+function atualizarModoEndereco(c){
+  var temDados = c.cep || c.rua || c.dados_envio_ok;
+  var view     = document.getElementById('endereco-view');
+  var form     = document.getElementById('endereco-form');
+  var btnEdit  = document.getElementById('btn-editar-endereco');
+  if(temDados){
+    // Preencher visualização
+    var set = function(id, val){ var el=document.getElementById(id); if(el) el.textContent=val||''; };
+    set('ev-cpf',       c.cpf||'—');
+    set('ev-telefone',  c.telefone||'—');
+    set('ev-cep',       c.cep||'—');
+    set('ev-rua',       c.rua||'—');
+    set('ev-numero',    c.numero_end||'');
+    set('ev-complemento', c.complemento ? '(' + c.complemento + ')' : '');
+    set('ev-bairro',    c.bairro||'—');
+    set('ev-cidade',    (c.cidade_end||'') + (c.estado ? '/' + c.estado : ''));
+    view.style.display    = 'block';
+    form.style.display    = 'none';
+    btnEdit.style.display = 'block';
+  } else {
+    view.style.display    = 'none';
+    form.style.display    = 'block';
+    btnEdit.style.display = 'none';
+  }
+}
+
+function editarEndereco(){
+  if(!confirm('Deseja editar os dados de endereço? O endereço atual será mantido até você salvar novamente.')) return;
+  document.getElementById('endereco-view').style.display = 'none';
+  document.getElementById('endereco-form').style.display = 'block';
+  document.getElementById('btn-editar-endereco').style.display = 'none';
+}
+
+async function salvarEnderecoManual(){
+  var username = document.getElementById('f-username') ? document.getElementById('f-username').value.trim() : '';
+  if(!username){ alert('Nenhum creator selecionado.'); return; }
+  var cpf        = (document.getElementById('f-cpf')||{}).value||'';
+  var telefone   = (document.getElementById('f-telefone')||{}).value||'';
+  var cep        = (document.getElementById('f-cep')||{}).value||'';
+  var rua        = (document.getElementById('f-rua')||{}).value||'';
+  var numero     = (document.getElementById('f-numero')||{}).value||'';
+  var complemento= (document.getElementById('f-complemento')||{}).value||'';
+  var bairro     = (document.getElementById('f-bairro')||{}).value||'';
+  var cidade     = (document.getElementById('f-cidade-env')||{}).value||'';
+  var estado     = (document.getElementById('f-estado')||{}).value||'';
+  if(!cep||!rua||!numero||!bairro||!cidade||!estado){
+    alert('Preencha todos os campos obrigatórios do endereço antes de salvar.'); return;
+  }
+  var btn = document.getElementById('btn-salvar-endereco');
+  var msg = document.getElementById('msg-salvar-endereco');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try{
+    var r = await fetch('/api/creator/dados-envio', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:username, cpf:cpf, telefone:telefone,
+        cep:cep, rua:rua, numero:numero, complemento:complemento,
+        bairro:bairro, cidade:cidade, estado:estado})
+    });
+    var res = await r.json();
+    if(res.ok){
+      msg.style.display = 'inline';
+      setTimeout(function(){ msg.style.display='none'; }, 3000);
+      // Trava o endereço em modo visualização
+      atualizarModoEndereco({cep:cep,rua:rua,numero_end:numero,complemento:complemento,
+        bairro:bairro,cidade_end:cidade,estado:estado,cpf:cpf,telefone:telefone,dados_envio_ok:true});
+      var fb = document.getElementById('crm-ficha-status');
+      if(fb){ fb.style.background='#14291a'; fb.style.border='1px solid #16a34a50'; fb.style.color='#4ade80'; fb.textContent='✅ Endereço cadastrado manualmente'; fb.style.display='block'; }
+    } else { alert('Erro ao salvar endereço: ' + (res.error||'Tente novamente.')); }
+  } catch(e){ alert('Erro de conexão ao salvar endereço.'); }
+  btn.disabled = false; btn.innerHTML = '💾 Salvar Endereço';
+}
+
 async function buscarCEP(){
   var cep = document.getElementById('f-cep').value.replace(/\D/g,'');
   var st = document.getElementById('cep-status');
@@ -1579,7 +1849,7 @@ function preencherEndereco(endereco){
   var partes = endereco.split(',').map(function(p){ return p.trim(); });
   if(partes.length>=1) document.getElementById('f-rua').value = partes[0]||'';
   if(partes.length>=2) document.getElementById('f-numero').value = partes[1]||'';
-  if(partes.length>=7){ // com complemento
+  if(partes.length>=7){ // com complemento: rua, num, comp, bairro, cidade, estado, cep
     document.getElementById('f-complemento').value = partes[2]||'';
     document.getElementById('f-bairro').value = partes[3]||'';
     document.getElementById('f-cidade-env').value = partes[4]||'';
@@ -1588,12 +1858,20 @@ function preencherEndereco(endereco){
       if(sel.options[i].value===partes[5].trim()){ sel.selectedIndex=i; break; }
     }
     document.getElementById('f-cep').value = partes[6]||'';
-  } else if(partes.length>=5){
+  } else if(partes.length>=6){ // sem complemento: rua, num, bairro, cidade, estado, cep
     document.getElementById('f-bairro').value = partes[2]||'';
     document.getElementById('f-cidade-env').value = partes[3]||'';
     var sel2 = document.getElementById('f-estado');
     for(var i=0;i<sel2.options.length;i++){
       if(sel2.options[i].value===(partes[4]||'').trim()){ sel2.selectedIndex=i; break; }
+    }
+    document.getElementById('f-cep').value = partes[5]||'';
+  } else if(partes.length>=5){ // fallback: rua, num, bairro, cidade, estado
+    document.getElementById('f-bairro').value = partes[2]||'';
+    document.getElementById('f-cidade-env').value = partes[3]||'';
+    var sel3 = document.getElementById('f-estado');
+    for(var i=0;i<sel3.options.length;i++){
+      if(sel3.options[i].value===(partes[4]||'').trim()){ sel3.selectedIndex=i; break; }
     }
   }
 }
@@ -1750,8 +2028,9 @@ function resolverWhatsAppForm(){
 
 function enviarContratoWhatsApp(username, telefone){
   var link = BASE_URL + '/contrato?u=' + encodeURIComponent(username);
-  var msg = '👋 Olá! Segue o link para você assinar o Termo de Autorização de Uso de Imagem da *PowerMind*:\n\n'
-    + link + '\n\nÉ rápido, leva menos de 1 minuto. Qualquer dúvida, estou à disposição! 🙏';
+  var msg = 'Oi, tudo bem?\n\nAqui é a Julia da PowerMind! Preparamos o Termo de Autorização de Imagem pra você, é bem rapidinho, menos de 1 minutinho:\n\n'
+    + link + '\n\n'
+    + 'Qualquer dúvida é só chamar, tô aqui!\n\n— Julia, PowerMind';
   if(telefone){
     var num = telefone.replace(/\D/g,'');
     if(num.length <= 11) num = '55' + num;
@@ -2056,7 +2335,7 @@ function adicionarMensagem(role, texto){
     if(scriptCreatorSelecionado && scriptCreatorSelecionado.telefone){
       var btnWa = document.createElement('button');
       btnWa.style.cssText = 'background:#16a34a;border:none;color:#fff;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:.75rem;font-weight:700;margin-top:10px;display:block';
-      btnWa.textContent = '📲 Enviar script via WhatsApp';
+      btnWa.innerHTML = '<span class="wpp-icon"></span>Enviar script via WhatsApp';
       var textoLimpo = texto;
       btnWa.addEventListener('click', (function(t, c){
         return function(){
@@ -2064,7 +2343,7 @@ function adicionarMensagem(role, texto){
           if(!wppNum){ alert('Creator sem WhatsApp cadastrado.'); return; }
           var num = wppNum.replace(/\D/g,'');
           if(num.length<=11) num='55'+num;
-          var msg = '🎬 *Script PowerMind para ' + (c.nome||c.username) + '*\n\n' + t;
+          var msg = '*Script PowerMind para ' + (c.nome||c.username) + '*\n\n' + t;
           window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');
         };
       })(textoLimpo, scriptCreatorSelecionado));
@@ -2151,14 +2430,177 @@ function enviarFichaWpp(){
   if(num.length <= 11) num = '55' + num;
   var link = (typeof BASE_URL !== 'undefined' ? BASE_URL : window.location.origin) + '/ficha?u=' + encodeURIComponent(username);
   var nome = document.getElementById('f-nome') ? document.getElementById('f-nome').value.split(' ')[0] : 'parceiro';
-  var msg = 'Oi, ' + nome + '! 🌟\n\nTudo bem? Aqui é a equipe PowerMind! 💪\n\n'
-    + 'Para enviarmos seu produto, precisamos de algumas informações rápidas de entrega.\n\n'
-    + '📦 Preencha sua ficha pelo link abaixo, leva menos de 2 minutinhos:\n\n'
+  var msg = 'Oi, ' + nome + '! Tudo bem?\n\n'
+    + 'Aqui é a Julia da PowerMind! Sua parceria já tá confirmada e a gente mal pode esperar para enviar o produto e iniciarmos nossa parceria!\n\n'
+    + 'Pra gente enviar, preciso só do seu endereço. Tem um formulário bem rápido aqui:\n\n'
     + link + '\n\n'
-    + 'Qualquer dúvida é só falar! Mal podemos esperar para você receber o PowerMind 🚀\n\n'
-    + '— Equipe PowerMind 💪💚';
+    + 'Menos de 2 minutinhos, prometo!\n\n'
+    + 'Qualquer coisa é só chamar — tô aqui!';
   window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
 }
+
+
+// ── Melhor Envio — Envio para Creator ────────────────────────────────────────
+
+function abrirEnvioMelhorEnvio() {
+  var painel = document.getElementById('painel-melhor-envio');
+  var aberto = painel.style.display !== 'none';
+  painel.style.display = aberto ? 'none' : 'block';
+  if (!aberto) {
+    document.getElementById('me-opcoes-frete').textContent = '';
+    document.getElementById('me-status-envio').textContent = '';
+    var nome   = (document.getElementById('f-nome') ? document.getElementById('f-nome').value : '') || '';
+    var cep    = (document.getElementById('f-cep')  ? document.getElementById('f-cep').value.replace(/\D/g,'') : '') || '';
+    var rua    = document.getElementById('f-rua') ? document.getElementById('f-rua').value : '';
+    var numEnd = document.getElementById('f-numero') ? document.getElementById('f-numero').value : '';
+    var bairro = document.getElementById('f-bairro') ? document.getElementById('f-bairro').value : '';
+    var cidade = document.getElementById('f-cidade-env') ? document.getElementById('f-cidade-env').value : '';
+    var estado = document.getElementById('f-estado') ? document.getElementById('f-estado').value : '';
+    var tel    = document.getElementById('f-telefone') ? document.getElementById('f-telefone').value : '';
+    var resumo = document.getElementById('me-destinatario-resumo');
+    resumo.textContent = '';
+    var nomeEl = document.createElement('b'); nomeEl.style.color='#fff'; nomeEl.textContent = '👤 '+(nome||'Creator');
+    resumo.appendChild(nomeEl); resumo.appendChild(document.createElement('br'));
+    var endEl = document.createTextNode('📍 '+[rua, numEnd, bairro, cidade+'/'+estado].filter(Boolean).join(', '));
+    resumo.appendChild(endEl); resumo.appendChild(document.createElement('br'));
+    var cepEl = document.createElement('span');
+    var manualWrap = document.getElementById('me-cep-manual-wrap');
+    if (!cep || cep.length !== 8) {
+      cepEl.style.color = '#f39c12';
+      cepEl.textContent = 'CEP nao encontrado — informe abaixo para cotar o frete:';
+      if (manualWrap) manualWrap.style.display = 'block';
+    } else {
+      cepEl.textContent = 'CEP: '; var cepVal = document.createElement('b');
+      cepVal.style.color='#3b82f6'; cepVal.textContent = cep;
+      cepEl.appendChild(cepVal);
+      if (tel) { cepEl.appendChild(document.createTextNode('  |  Tel: '+tel)); }
+      if (manualWrap) manualWrap.style.display = 'none';
+    }
+    resumo.appendChild(cepEl);
+  }
+}
+
+function aplicarCEPManual() {
+  var manual = document.getElementById('me-cep-manual');
+  if (!manual) return;
+  var cep = manual.value.replace(/\D/g,'');
+  if (cep.length !== 8) { alert('CEP inválido. Digite os 8 dígitos.'); return; }
+  // Preenche o campo do form para ser usado na cotação e geração de etiqueta
+  var fCep = document.getElementById('f-cep');
+  if (fCep) fCep.value = cep.replace(/^(\d{5})(\d{3})$/,'$1-$2');
+  var wrap = document.getElementById('me-cep-manual-wrap');
+  if (wrap) wrap.style.display = 'none';
+  var resumo = document.getElementById('me-destinatario-resumo');
+  var aviso = document.createElement('div');
+  aviso.style.cssText = 'color:#4ade80;font-size:.78rem;margin-top:6px';
+  aviso.textContent = 'CEP ' + cep + ' aplicado. Clique em Cotar Frete.';
+  resumo.appendChild(aviso);
+}
+
+function cotarCreator() {
+  var cep = (document.getElementById('f-cep') ? document.getElementById('f-cep').value.replace(/\D/g,'') : '');
+  var qtd = parseInt(document.getElementById('me-qtd-creator').value) || 1;
+  var opcoesEl = document.getElementById('me-opcoes-frete');
+  if (!cep || cep.length !== 8) {
+    opcoesEl.textContent = '⚠️ CEP inválido ou não preenchido.';
+    opcoesEl.style.color = '#f39c12'; return;
+  }
+  opcoesEl.textContent = '🔄 Cotando fretes...'; opcoesEl.style.color = '#888';
+  fetch('/api/expedicao/cotar', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ cep: cep, qtd: qtd })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(cotacoes) {
+    var disponiveis = (Array.isArray(cotacoes) ? cotacoes : []).filter(function(c){ return !c.error && c.price; });
+    opcoesEl.textContent = '';
+    if (!disponiveis.length) { opcoesEl.textContent = 'Nenhum frete disponível.'; opcoesEl.style.color='#e74c3c'; return; }
+    disponiveis.sort(function(a,b){ return parseFloat(a.price)-parseFloat(b.price); });
+    var label = document.createElement('div');
+    label.style.cssText = 'color:#888;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px';
+    label.textContent = 'Selecione o frete:';
+    opcoesEl.appendChild(label);
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px';
+    disponiveis.forEach(function(c) {
+      var prazo = c.delivery_range ? c.delivery_range.min+'-'+c.delivery_range.max+'d' : '?d';
+      var btn = document.createElement('button');
+      btn.style.cssText = 'background:#0d1f35;color:#fff;border:1px solid #1e3a5f;padding:7px 12px;border-radius:7px;cursor:pointer;font-size:.78rem;text-align:left';
+      btn.onmouseover = function(){ this.style.borderColor='#3b82f6'; };
+      btn.onmouseout  = function(){ this.style.borderColor='#1e3a5f'; };
+      var priceEl = document.createElement('div'); priceEl.style.cssText='color:#27ae60;font-weight:700;font-size:.9rem';
+      priceEl.textContent = 'R$'+parseFloat(c.price).toFixed(2);
+      var nameEl = document.createElement('div'); nameEl.style.cssText='color:#aaa;font-size:.72rem';
+      nameEl.textContent = c.name+' · '+prazo;
+      btn.appendChild(priceEl); btn.appendChild(nameEl);
+      (function(sid,q){ btn.onclick = function(){ gerarEtiquetaCreator(sid,q); }; })(c.id, qtd);
+      wrap.appendChild(btn);
+    });
+    opcoesEl.appendChild(wrap);
+  })
+  .catch(function(e){ opcoesEl.textContent = 'Erro: '+e; opcoesEl.style.color='#e74c3c'; });
+}
+
+function gerarEtiquetaCreator(serviceId, qtd) {
+  var statusEl = document.getElementById('me-status-envio');
+  statusEl.textContent = '🔄 Gerando etiqueta...'; statusEl.style.color='#f39c12';
+  var nome   = (document.getElementById('f-nome') ? document.getElementById('f-nome').value.trim() : '') || 'Creator PowerMind';
+  var cep    = document.getElementById('f-cep') ? document.getElementById('f-cep').value.replace(/\D/g,'') : '';
+  var rua    = document.getElementById('f-rua') ? document.getElementById('f-rua').value : '';
+  var numEnd = document.getElementById('f-numero') ? document.getElementById('f-numero').value : '';
+  var compl  = document.getElementById('f-complemento') ? document.getElementById('f-complemento').value : '';
+  var bairro = document.getElementById('f-bairro') ? document.getElementById('f-bairro').value : '';
+  var cidade = document.getElementById('f-cidade-env') ? document.getElementById('f-cidade-env').value : '';
+  var estado = document.getElementById('f-estado') ? document.getElementById('f-estado').value : '';
+  var tel    = document.getElementById('f-telefone') ? document.getElementById('f-telefone').value.replace(/\D/g,'') : '';
+  var cpf    = document.getElementById('f-cpf') ? document.getElementById('f-cpf').value.replace(/\D/g,'') : '';
+  var username = document.getElementById('f-username') ? document.getElementById('f-username').value : '';
+  var valores = {1:157, 2:274, 3:381, 6:702};
+  var total = valores[qtd] || 157;
+  var pedido = { id:'creator-'+Date.now(), numero:'CREATOR-'+nome.replace(/[^a-zA-Z0-9]/g,'').substring(0,10).toUpperCase(),
+    cliente:nome, telefone:tel, email:'', cpf:cpf, cep:cep, endereco:rua, numero_end:numEnd,
+    complemento:compl, bairro:bairro, cidade:cidade, estado:estado, qtd:qtd, total:total };
+  fetch('/api/expedicao/gerar-etiqueta', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ service_id: serviceId, pedido: pedido })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    if (d.erro) {
+      var msg = d.erro;
+      try { var m = msg.match(/\{[^}]+\}/); if(m){ var inner=JSON.parse(m[0]); msg=inner.error||inner.message||msg; } } catch(e){}
+      if (msg.indexOf('saldo')!==-1||msg.indexOf('insuficiente')!==-1) {
+        statusEl.textContent = '';
+        var sp = document.createElement('span'); sp.style.color='#f39c12';
+        sp.textContent = '💰 Saldo insuficiente — ';
+        var a = document.createElement('a'); a.href='https://melhorenvio.com.br/painel/financeiro';
+        a.target='_blank'; a.style.color='#3b82f6'; a.textContent='Adicionar saldo →';
+        sp.appendChild(a); statusEl.appendChild(sp);
+      } else { statusEl.textContent = '❌ '+msg.substring(0,120); statusEl.style.color='#e74c3c'; }
+      return;
+    }
+    // Baixar estoque
+    fetch('/api/estoque/movimentacao',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({tipo:'saida_creator',produto_id:'POWERMIND-1UN',quantidade:qtd,
+        origem:'creator',responsavel:'Felipe',descricao:'Envio creator '+nome+' ('+username+')'})});
+    statusEl.textContent = '';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#0a2a1a;border:1px solid #27ae60;border-radius:8px;padding:10px 14px;margin-top:6px';
+    var title = document.createElement('div'); title.style.cssText='color:#27ae60;font-weight:700;margin-bottom:8px';
+    title.textContent = '✅ Etiqueta gerada com sucesso!';
+    box.appendChild(title);
+    if (d.print_url) {
+      var a = document.createElement('a'); a.href=d.print_url; a.target='_blank';
+      a.style.cssText='background:#1a4731;color:#27ae60;border:1px solid #27ae60;padding:8px 18px;border-radius:6px;text-decoration:none;font-weight:700;font-size:.85rem;display:inline-block';
+      a.textContent='🖨️ Imprimir Etiqueta'; box.appendChild(a);
+    }
+    var sub = document.createElement('div'); sub.style.cssText='color:#888;font-size:.72rem;margin-top:8px';
+    sub.textContent='Estoque baixado automaticamente ✅'; box.appendChild(sub);
+    statusEl.appendChild(box);
+  })
+  .catch(function(e){ statusEl.textContent='Erro: '+e; statusEl.style.color='#e74c3c'; });
+}
+
 
 // ── Vídeos no Drive ──────────────────────────────────────────────────────────
 function atualizarStatusVideo(link, pastaEm) {
@@ -2229,12 +2671,11 @@ function enviarVideoLinkWpp() {
   var num  = tel.replace(/\D/g, '');
   if (num.length <= 11) num = '55' + num;
   var nome = document.getElementById('f-nome') ? document.getElementById('f-nome').value.split(' ')[0] : 'parceiro';
-  var msg  = 'Oi, ' + nome + '! 🎬✨\n\n'
-    + 'Tudo pronto por aqui! Para enviar os vídeos produzidos para a PowerMind, use a pasta exclusiva que criamos para você no Google Drive:\n\n'
-    + '📁 ' + link + '\n\n'
-    + 'É só clicar no link, depois em "Novo" → "Upload de arquivo" e enviar os vídeos. Simples assim! 🚀\n\n'
-    + 'Dúvidas? É só chamar aqui.\n\n'
-    + '— Equipe PowerMind 💪🟢';
+  var msg  = 'Oi, ' + nome + '! Tudo bem?\n\n'
+    + 'Criei uma pasta exclusiva no Google Drive pra você me enviar os vídeos produzidos:\n\n'
+    + link + '\n\n'
+    + 'É só entrar no link, clicar em Novo, Enviar arquivo e fazer o upload.\n\n'
+    + 'Qualquer dúvida me chama aqui, tô sempre por perto!';
   window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
 }
 // ──────────────────────────────────────────────────────────────────────────────
@@ -2253,7 +2694,11 @@ function enviarContratoWpp(){
   var num = tel.replace(/\D/g,'');
   if(num.length <= 11) num = '55' + num;
   var link = (typeof BASE_URL !== 'undefined' ? BASE_URL : window.location.origin) + '/contrato?u=' + encodeURIComponent(username);
-  var msg = 'Olá! 🤝 Segue o link do seu contrato PowerMind para leitura e assinatura digital:\n\n' + link + '\n\nQualquer dúvida estamos à disposição! — Equipe PowerMind 💚';
+  var msg = 'Oi, ' + (document.getElementById('f-nome') ? document.getElementById('f-nome').value.split(' ')[0] : 'parceiro') + '!\n\n'
+    + 'Aqui é a Julia da PowerMind! Preparei o contrato da nossa parceria pra você dar uma olhada e assinar digitalmente:\n\n'
+    + link + '\n\n'
+    + 'É bem simples, leva menos de 1 minuto. Qualquer dúvida, pode me chamar aqui mesmo!\n\n'
+    + '— Julia, PowerMind';
   window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
@@ -2281,7 +2726,7 @@ function enviarScriptWhatsApp(){
   var num = telefone.replace(/\D/g,'');
   if(num.length <= 11) num = '55' + num;
   var nome = scriptCreatorSelecionado.nome || scriptCreatorSelecionado.username || '';
-  var msg = '🎬 *Script PowerMind*\n_Para: ' + nome + '_\n\n' + texto;
+  var msg = '*Script PowerMind*\n_Para: ' + nome + '_\n\n' + texto;
   window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
@@ -2689,7 +3134,7 @@ function renderAgenda(){
         (a.briefing ? '<div style="font-size:.78rem;color:#6b7280;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:400px">' + a.briefing + '</div>' : '') +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-shrink:0">' +
-        (!a.concluido ? '<button onclick="enviarLembreteWpp(\'' + a.id + '\')" title="Enviar lembrete WhatsApp" style="background:#25d366;border:none;color:#fff;padding:7px 12px;border-radius:7px;cursor:pointer;font-size:.8rem;font-weight:700">📲</button>' : '') +
+        (!a.concluido ? '<button onclick="enviarLembreteWpp(\'' + a.id + '\')" title="Enviar lembrete WhatsApp" style="background:#25d366;border:none;color:#fff;padding:7px 12px;border-radius:7px;cursor:pointer;font-size:.8rem;font-weight:700"><span class="wpp-icon"></span></button>' : '') +
         (!a.concluido ? '<button onclick="marcarConcluido(\'' + a.id + '\')" title="Marcar como concluído" style="background:#16a34a22;border:1px solid #16a34a;color:#4ade80;padding:7px 12px;border-radius:7px;cursor:pointer;font-size:.8rem">✅</button>' : '') +
         '<button onclick="excluirAgendamento(\'' + a.id + '\')" title="Excluir" style="background:#1f0a0a;border:1px solid #7f1d1d;color:#f87171;padding:7px 12px;border-radius:7px;cursor:pointer;font-size:.8rem">🗑</button>' +
       '</div>';
@@ -2719,7 +3164,7 @@ function renderAlertasHoje(){
     var creator = allCreators.find(function(c){ return c.username === a.creator; }) || {};
     html += '<div style="font-size:.83rem;color:#e0e0e0;display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #2d3047">';
     html += '<span>' + (qtd===0?'🔴 HOJE':'🟡 AMANHÃ') + ' — <b>' + (creator.nome||a.creator) + '</b> · ' + a.tipo + '</span>';
-    html += '<button onclick="enviarLembreteWpp(\'' + a.id + '\')" style="background:#25d366;border:none;color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700">📲 Lembrar agora</button>';
+    html += '<button onclick="enviarLembreteWpp(\'' + a.id + '\')" style="background:#25d366;border:none;color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700"><span class="wpp-icon"></span>Lembrar agora</button>';
     html += '</div>';
   });
   html += '</div>';
@@ -2814,33 +3259,33 @@ function gerarTextoLembrete(agendamento, creator){
   var restricoes = ac.restricoes || '';
 
   var blocoObrig = '';
-  if(cupom)    blocoObrig += '🏷️ *Cupom:* ' + cupom + '\n';
-  if(mencoes)  blocoObrig += '👤 *Marcar:* ' + mencoes + '\n';
-  if(hashtags) blocoObrig += '#️⃣ ' + hashtags + '\n';
+  if(cupom)    blocoObrig += '*Cupom:* ' + cupom + '\n';
+  if(mencoes)  blocoObrig += '*Marcar:* ' + mencoes + '\n';
+  if(hashtags) blocoObrig += hashtags + '\n';
   if(aprovacao === 'sim'){
     var prazo = ac.prazo_rascunho || 1;
-    blocoObrig += '✅ *Envie o rascunho ' + prazo + ' dia(s) antes para aprovação!*\n';
+    blocoObrig += '*Lembre:* envie o rascunho ' + prazo + ' dia(s) antes para aprovacao!\n';
   }
-  var blocoRestr = restricoes ? '\n⚠️ *Não esqueça:* ' + restricoes : '';
+  var blocoRestr = restricoes ? '\n*Nao esqueca:* ' + restricoes : '';
 
   var msgs = [
-    'Oi, ' + primeiroNome + '! 🌟\n\nTudo bem? Passando aqui com um lembrete especial: nosso ' + tipoIcon + ' *' + tipo + '* está programado para ' + quando + (hora ? ' às *' + hora + '*' : '') + '!\n\n'
-    + (brief ? '📌 *Briefing:* ' + brief + '\n\n' : '')
+    'Oi, ' + primeiroNome + '! Tudo bem?\n\nPassando rapidinho pra te lembrar: nosso ' + tipoIcon + ' *' + tipo + '* é ' + quando + (hora ? ' às *' + hora + '*' : '') + '!\n\n'
+    + (brief ? brief + '\n\n' : '')
     + (blocoObrig ? blocoObrig + '\n' : '')
     + blocoRestr
-    + '\nQualquer dúvida, estou aqui! Vai ser incrível 🚀\n\n— Equipe PowerMind 💚',
+    + '\nQualquer dúvida é só me chamar, tô aqui! Vai arrasar!\n\n— Julia, PowerMind',
 
-    'Oii ' + primeiroNome + '! ☀️\n\nLembrete do nosso ' + tipoIcon + ' *' + tipo + '*' + (hora ? ' às *' + hora + '*' : '') + ' — ' + quando + '! 🙌\n\n'
-    + (brief ? '✍️ _' + brief + '_\n\n' : '')
+    'Oii ' + primeiroNome + '!\n\nLembretinho aqui: nosso ' + tipoIcon + ' *' + tipo + '*' + (hora ? ' às *' + hora + '*' : '') + ' é ' + quando + '!\n\n'
+    + (brief ? '_' + brief + '_\n\n' : '')
     + (blocoObrig ? blocoObrig + '\n' : '')
     + blocoRestr
-    + '\nObrigado por fazer parte da família PowerMind! 🔥\n\n— PowerMind 💚',
+    + '\nMuito feliz de ter você nessa parceria! Bora fazer bonito juntos!\n\n— Julia, PowerMind',
 
-    'Oi ' + primeiroNome + '! 🌿\n\nO nosso ' + tipoIcon + ' *' + tipo + '* de ' + quando + (hora ? ' às ' + hora : '') + ' está chegando! 🚀\n\n'
-    + (brief ? '📋 ' + brief + '\n\n' : '')
+    'Oi ' + primeiroNome + '!\n\nO nosso ' + tipoIcon + ' *' + tipo + '* de ' + quando + (hora ? ' às ' + hora : '') + ' tá chegando!\n\n'
+    + (brief ? brief + '\n\n' : '')
     + (blocoObrig ? blocoObrig + '\n' : '')
     + blocoRestr
-    + '\nConte com a gente sempre! 💪✨\n\n— Equipe PowerMind',
+    + '\nPode contar comigo sempre! Qualquer coisa me fala!\n\n— Julia, PowerMind',
   ];
 
   return msgs[Math.floor(Math.random() * msgs.length)];
@@ -2881,8 +3326,401 @@ function enviarLembreteWpp(id){
   window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(txt), '_blank');
 }
 
+// ── Primeiro Contato — scripts embutidos (sem dependência de fetch)
+var SCRIPTS_PC = {
+  'Mulher|nos_procuramos': [
+    "Oi, [Nome]! Tudo bem?",
+    "",
+    "Sou a Julia, da *PowerMind* — a gente cria suplemento em pó pra energia, foco e memória, sem aquele crash do café ou energético. É um produto 100% natural — prezamos pelo alinhamento do corpo, da alma e do espírito.",
+    "",
+    "Vi o seu conteúdo e achei muito alinhado com o que a gente representa: mulheres que levam performance a sério, seja no trabalho, nos estudos ou no dia a dia.",
+    "",
+    "Queria te fazer uma proposta de *parceria por permuta* — sem burocracia, direto ao ponto:",
+    "",
+    "*O que a gente te manda:*",
+    "Produto completo pra você testar por 30 dias, sem custo nenhum.",
+    "",
+    "*O que a gente pede em troca:*",
+    "• 1 Reel por semana (pode ser espontâneo, do seu jeito)",
+    "• 2 Stories simples por semana",
+    "• Durante 30 dias",
+    "",
+    "Nada de roteiro engessado. Você usa, sente o resultado e conta como foi. Enviaremos um script simples para comunicar com nossa proposta e você entra com sua autenticidade.",
+    "",
+    "Nossas usuárias já relatam mais disposição, foco no trabalho e fim do \"apagão\" da tarde. Se você sentir o mesmo, vai ter muito o que contar.",
+    "",
+    "Nosso Instagram: https://www.instagram.com/powermindbr_",
+    "Nosso site: https://www.powermindbr.com.br",
+    "",
+    "Faz sentido pra você? Posso te mandar mais detalhes do produto e como funciona a parceria!"
+  ].join("\n"),
+
+  'Homem|nos_procuramos': [
+    "Oi, [Nome]! Tudo bem?",
+    "",
+    "Sou a Julia, da *PowerMind* — a gente cria suplemento em pó pra energia, foco e memória, sem aquele crash do café ou dependência de energético. É um produto 100% natural — prezamos pelo alinhamento do corpo, da alma e do espírito.",
+    "",
+    "Vi o seu conteúdo e achei muito alinhado com o que a gente representa: caras que levam performance a sério, seja nos negócios, nos treinos ou no dia a dia.",
+    "",
+    "Queria te fazer uma proposta de *parceria por permuta* — sem burocracia, direto ao ponto:",
+    "",
+    "*O que a gente te manda:*",
+    "Produto completo pra você testar por 30 dias, sem custo nenhum.",
+    "",
+    "*O que a gente pede em troca:*",
+    "• 1 Reel por semana (do seu jeito, sem enrolação)",
+    "• 2 Stories simples por semana",
+    "• Durante 30 dias",
+    "",
+    "Nada de roteiro engessado. Você usa, sente o resultado e conta como foi. Enviaremos um script simples para comunicar com nossa proposta e você entra com sua autenticidade.",
+    "",
+    "Nossos usuários já relatam mais foco, energia constante e fim daquele apagão da tarde. Se você sentir o mesmo, vai ter muito o que falar.",
+    "",
+    "Nosso Instagram: https://www.instagram.com/powermindbr_",
+    "Nosso site: https://www.powermindbr.com.br",
+    "",
+    "Faz sentido pra você? Me fala que eu te passo todos os detalhes da parceria!"
+  ].join("\n"),
+
+  'Mulher|nos_procurou': [
+    "Oi, [Nome]! Que bom ter você aqui!",
+    "",
+    "Ficamos muito felizes com o seu interesse em fazer parceria com a *PowerMind*! A gente cria suplemento em pó pra energia, foco e memória — sem crash, sem ansiedade e sem dependência de energético pesado. É um produto 100% natural — prezamos pelo alinhamento do corpo, da alma e do espírito.",
+    "",
+    "Antes de tudo, passamos uma olhada no seu perfil e adoramos o conteúdo que você produz! Exatamente o tipo de autenticidade que a gente busca numa parceria.",
+    "",
+    "Vou te explicar como funciona:",
+    "",
+    "*O que a gente te manda:*",
+    "Produto completo pra você testar por 30 dias, sem custo nenhum.",
+    "",
+    "*O que a gente pede em troca:*",
+    "• 1 Reel por semana (do seu jeito, no seu estilo)",
+    "• 2 Stories simples por semana",
+    "• Durante 30 dias",
+    "",
+    "Nada de roteiro engessado. Você usa, sente o resultado e conta como foi. Enviaremos um script simples para comunicar com nossa proposta e você entra com sua autenticidade.",
+    "",
+    "Nossas parceiras relatam mais disposição, foco e fim do \"apagão\" da tarde — e quando isso vem de um lugar real, o conteúdo converte muito mais.",
+    "",
+    "Nosso Instagram: https://www.instagram.com/powermindbr_",
+    "Nosso site: https://www.powermindbr.com.br",
+    "",
+    "Tem alguma dúvida antes da gente avançar? Me fala à vontade!"
+  ].join("\n"),
+
+  'Homem|nos_procurou': [
+    "Oi, [Nome]! Que bom ter você aqui!",
+    "",
+    "Ficamos muito felizes com o seu interesse em fazer parceria com a *PowerMind*! A gente cria suplemento em pó pra energia, foco e memória — sem crash, sem ansiedade e sem dependência de estimulante pesado. É um produto 100% natural — prezamos pelo alinhamento do corpo, da alma e do espírito.",
+    "",
+    "Passamos uma olhada no seu perfil e curtimos muito o que você produz! Exatamente o tipo de conteúdo autêntico que a gente busca numa parceria.",
+    "",
+    "Vou te explicar como funciona:",
+    "",
+    "*O que a gente te manda:*",
+    "Produto completo pra você testar por 30 dias, sem custo nenhum.",
+    "",
+    "*O que a gente pede em troca:*",
+    "• 1 Reel por semana (no seu estilo, sem enrolação)",
+    "• 2 Stories simples por semana",
+    "• Durante 30 dias",
+    "",
+    "Nada de roteiro engessado. Você usa, sente o resultado e conta como foi. Enviaremos um script simples para comunicar com nossa proposta e você entra com sua autenticidade.",
+    "",
+    "Nossos parceiros relatam mais foco, energia constante e fim daquele apagão da tarde — e quando o conteúdo vem de experiência real, o engajamento é outro nível.",
+    "",
+    "Nosso Instagram: https://www.instagram.com/powermindbr_",
+    "Nosso site: https://www.powermindbr.com.br",
+    "",
+    "Tem alguma dúvida antes da gente avançar? Me fala à vontade!"
+  ].join("\n")
+};
+
+function abrirModalPrimeiraMsgSeletor(nome, whatsapp){
+  // Para creators sem gênero/iniciativa: mostra seletor antes
+  var overlay = document.getElementById('pc-seletor-overlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'pc-seletor-overlay';
+    overlay.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;align-items:center;justify-content:center;padding:16px';
+    overlay.innerHTML = `
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:100%;max-width:420px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <h3 style="color:#f1f5f9;margin:0;font-size:1rem">Selecionar Script de Primeiro Contato</h3>
+        <p style="color:#94a3b8;font-size:.85rem;margin:0">Creator sem gênero/iniciativa cadastrados. Escolha manualmente:</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="color:#cbd5e1;font-size:.85rem">Gênero</label>
+          <select id="pc-sel-genero" style="background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f1f5f9;padding:8px">
+            <option value="Mulher">Mulher</option>
+            <option value="Homem">Homem</option>
+          </select>
+          <label style="color:#cbd5e1;font-size:.85rem;margin-top:4px">Como chegou até nós?</label>
+          <select id="pc-sel-iniciativa" style="background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f1f5f9;padding:8px">
+            <option value="nos_procuramos">Nós procuramos o creator</option>
+            <option value="nos_procurou">O creator nos procurou</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button onclick="document.getElementById('pc-seletor-overlay').style.display='none'" style="padding:10px 20px;background:#334155;border:none;border-radius:8px;color:#f1f5f9;cursor:pointer;font-size:.9rem">Cancelar</button>
+          <button id="pc-sel-confirmar" style="padding:10px 20px;background:#7c3aed;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:.9rem;font-weight:600">Continuar →</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = 'flex';
+  document.getElementById('pc-sel-confirmar').onclick = function(){
+    var g = document.getElementById('pc-sel-genero').value;
+    var i = document.getElementById('pc-sel-iniciativa').value;
+    overlay.style.display = 'none';
+    abrirModalPrimeiraMsg(nome, whatsapp, g, i);
+  };
+}
+
+function abrirModalPrimeiraMsg(nome, whatsapp, genero, iniciativa){
+  var chave = genero + '|' + iniciativa;
+  var template = SCRIPTS_PC[chave];
+  if(!template){
+    alert('Script não encontrado para ' + genero + ' / ' + iniciativa);
+    return;
+  }
+
+  var texto = template.replace(/\[Nome\]/g, nome || 'Creator');
+  document.getElementById('pc-modal-texto').value = texto;
+
+  var num = (whatsapp || '').replace(/\D/g,'');
+  if(num.length <= 11) num = '55' + num;
+  document.getElementById('pc-btn-enviar').onclick = function(){
+    var textoFinal = document.getElementById('pc-modal-texto').value;
+    window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(textoFinal), '_blank');
+  };
+
+  document.getElementById('pc-modal-overlay').style.display = 'flex';
+}
+
+function fecharModalPC(){
+  document.getElementById('pc-modal-overlay').style.display = 'none';
+}
+
 // ── Init
 loadCreators();
+
+// ===== AFILIADAS =====
+var _afiliadas = [];
+var _wppAfiliadaWpp = '';
+var _wppAfiliadaNome = '';
+
+async function carregarAfiliadas() {
+  try {
+    var r = await fetch('/api/admin/afiliadas');
+    _afiliadas = await r.json();
+    renderAfiliadas(_afiliadas);
+  } catch(e) { console.error('Erro afiliadas', e); }
+}
+
+function renderAfiliadas(lista) {
+  var totalPendente = lista.reduce(function(s,a){ return s + (a.comissao_pendente||0); }, 0);
+  var totalPago = lista.reduce(function(s,a){ return s + (a.total_pago||0); }, 0);
+  var totalVendas = lista.reduce(function(s,a){ return s + (a.vendas_mes||0); }, 0);
+  document.getElementById('af-ativas').textContent = lista.length;
+  document.getElementById('af-vendas').textContent = totalVendas;
+  document.getElementById('af-pendente').textContent = 'R$ ' + totalPendente.toFixed(2);
+  document.getElementById('af-total-pago').textContent = 'R$ ' + totalPago.toFixed(2);
+
+  var tbody = document.getElementById('afiliadas-tbody');
+  tbody.innerHTML = '';
+  if (!lista.length) {
+    var tr = tbody.insertRow();
+    var td = tr.insertCell();
+    td.colSpan = 7;
+    td.textContent = 'Nenhuma afiliada ativa';
+    td.style.cssText = 'text-align:center;padding:2rem;color:#64748b';
+    return;
+  }
+  lista.forEach(function(a) {
+    var tr = tbody.insertRow();
+    var pagarDisabled = (a.comissao_pendente||0) <= 0 ? 'disabled style="opacity:.4"' : '';
+    tr.innerHTML = '<td><strong>' + (a.nome||a.username) + '</strong><br><small style="color:#64748b">' + a.cupom + '</small></td>'
+      + '<td><code style="background:#0a0f1e;padding:.2rem .5rem;border-radius:4px">' + a.cupom + '</code></td>'
+      + '<td>' + (a.vendas_mes||0) + '</td>'
+      + '<td>R$ ' + (a.faturamento_mes||0).toFixed(2) + '</td>'
+      + '<td style="color:' + ((a.comissao_pendente||0) > 0 ? '#fbbf24' : '#64748b') + '">R$ ' + (a.comissao_pendente||0).toFixed(2) + '</td>'
+      + '<td style="color:#34d399">R$ ' + (a.total_pago||0).toFixed(2) + '</td>'
+      + '<td>'
+        + '<button onclick="pagarAfiliada(\'' + a.username + '\')" ' + pagarDisabled + ' style="background:#7c3aed;color:#fff;border:none;border-radius:4px;padding:.25rem .75rem;cursor:pointer;font-size:.8rem;margin-right:.25rem">Pagar</button>'
+        + '<button onclick="resetSenhaAfiliada(\'' + a.username + '\',\'' + (a.nome||a.username) + '\',\'' + (a.whatsapp||'') + '\')" style="background:#334155;color:#fff;border:none;border-radius:4px;padding:.25rem .75rem;cursor:pointer;font-size:.8rem">Reset Senha</button>'
+        + '<a href="/afiliada" target="_blank" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;padding:.25rem .75rem;font-size:.8rem;text-decoration:none;margin-left:.25rem">Ver Painel</a>'
+      + '</td>';
+  });
+}
+
+async function abrirModalAtivarAfiliada() {
+  var r = await fetch('/api/creators');
+  var creators = await r.json();
+  var ativos = new Set(_afiliadas.map(function(a){ return a.username; }));
+  var select = document.getElementById('af-select-creator');
+  select.innerHTML = '<option value="">Selecione...</option>';
+  creators.filter(function(c){ return !ativos.has(c.username); }).forEach(function(c) {
+    var opt = document.createElement('option');
+    opt.value = c.username;
+    opt.textContent = (c.nome || c.username);
+    select.appendChild(opt);
+  });
+  document.getElementById('af-email').value = '';
+  document.getElementById('af-cupom').value = '';
+  document.getElementById('af-pix-chave').value = '';
+  document.getElementById('modal-ativar-afiliada').style.display = 'flex';
+}
+
+function sugerirCupom() {
+  var select = document.getElementById('af-select-creator');
+  var username = select.value;
+  if (!username) return;
+  var opt = select.options[select.selectedIndex];
+  var nome = (opt.textContent || username).split(' ')[0].toUpperCase().replace(/[^A-Z]/g,'');
+  document.getElementById('af-cupom').value = nome.substring(0,8) + '10';
+}
+
+async function salvarAfiliada() {
+  var username = document.getElementById('af-select-creator').value;
+  var email = document.getElementById('af-email').value.trim();
+  var cupom = document.getElementById('af-cupom').value.trim().toUpperCase();
+  var pix_chave = document.getElementById('af-pix-chave').value.trim();
+  var pix_tipo = document.getElementById('af-pix-tipo').value;
+  if (!username || !email || !cupom || !pix_chave) { alert('Preencha todos os campos'); return; }
+  var r = await fetch('/api/admin/ativar-afiliada', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({username: username, email: email, cupom: cupom, pix_chave: pix_chave, pix_tipo: pix_tipo})
+  });
+  var data = await r.json();
+  if (!r.ok) { alert(data.erro || 'Erro ao ativar'); return; }
+  document.getElementById('modal-ativar-afiliada').style.display = 'none';
+  var opt = document.getElementById('af-select-creator').options[document.getElementById('af-select-creator').selectedIndex];
+  var nome = opt ? opt.textContent.trim() : username;
+  var msg = 'Ola ' + nome.split(' ')[0] + '! Tudo bem?\n\nSou a Julia da PowerMind! Ativamos o seu acesso como afiliada.\n\nSeus dados:\n- Link: https://www.powermindbr.com.br/?cupom=' + cupom + '\n- Cupom: ' + cupom + '\n- Email: ' + email + '\n- Senha: ' + data.senha_temporaria + '\n\nAcesse seu painel em: http://localhost:8080/afiliada\n\nQualquer duvida e so chamar aqui!';
+  document.getElementById('wpp-msg-afiliada').value = msg;
+  var af = _afiliadas.find(function(a){ return a.username === username; });
+  _wppAfiliadaWpp = af ? (af.whatsapp || '') : '';
+  _wppAfiliadaNome = nome;
+  document.getElementById('modal-acesso-wpp').style.display = 'flex';
+  carregarAfiliadas();
+}
+
+function enviarAcessoWpp() {
+  var msg = document.getElementById('wpp-msg-afiliada').value;
+  var num = (_wppAfiliadaWpp || '').replace(/\D/g,'');
+  var url = num ? 'https://wa.me/55' + num + '?text=' + encodeURIComponent(msg) : 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+  document.getElementById('modal-acesso-wpp').style.display = 'none';
+}
+
+async function pagarAfiliada(username) {
+  if (!confirm('Confirmar pagamento para esta afiliada?')) return;
+  var r = await fetch('/api/admin/pagar', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({username: username})
+  });
+  var data = await r.json();
+  alert(data.total > 0 ? 'Pagamento confirmado: R$ ' + data.pagos[0].comissao.toFixed(2) : 'Nenhuma comissao pendente');
+  carregarAfiliadas();
+}
+
+async function pagarTodasAfiliadas() {
+  if (!confirm('Confirmar pagamento para TODAS as afiliadas?')) return;
+  var r = await fetch('/api/admin/pagar', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({})
+  });
+  var data = await r.json();
+  alert(data.total + ' pagamento(s) confirmado(s)');
+  carregarAfiliadas();
+}
+
+async function resetSenhaAfiliada(username, nome, wpp) {
+  if (!confirm('Resetar senha de ' + nome + '?')) return;
+  var r = await fetch('/api/admin/reset-senha', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({username: username})
+  });
+  var data = await r.json();
+  var msg = 'Ola ' + nome.split(' ')[0] + '! A sua senha do painel PowerMind foi redefinida.\n\nNova senha: ' + data.senha_temporaria + '\n\nAcesse: http://localhost:8080/afiliada';
+  var num = (wpp || '').replace(/\D/g,'');
+  var url = num ? 'https://wa.me/55' + num + '?text=' + encodeURIComponent(msg) : 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+}
 </script>
+
+<!-- Modal Primeira Mensagem -->
+<div id="pc-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:100%;max-width:560px;padding:24px;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="color:#f1f5f9;margin:0;font-size:1rem">Primeira Mensagem — WhatsApp</h3>
+      <button onclick="fecharModalPC()" style="background:none;border:none;color:#94a3b8;font-size:1.3rem;cursor:pointer">✕</button>
+    </div>
+    <p style="color:#94a3b8;font-size:.85rem;margin:0">Revise e edite o texto abaixo antes de enviar:</p>
+    <textarea id="pc-modal-texto" rows="14" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#f1f5f9;padding:12px;font-size:.85rem;resize:vertical;line-height:1.6;box-sizing:border-box"></textarea>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="fecharModalPC()" style="padding:10px 20px;background:#334155;border:none;border-radius:8px;color:#f1f5f9;cursor:pointer;font-size:.9rem">Fechar</button>
+      <button id="pc-btn-enviar" style="padding:10px 20px;background:#25d366;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:.9rem;font-weight:600">Enviar via WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ativar Afiliada -->
+<div id="modal-ativar-afiliada" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#1e293b;border-radius:12px;padding:2rem;width:460px;max-width:90vw">
+    <h3 style="margin-bottom:1.5rem">Ativar Afiliada</h3>
+    <div style="margin-bottom:1rem">
+      <label style="font-size:.75rem;color:#9ca3af;display:block;margin-bottom:.25rem">Creator</label>
+      <select id="af-select-creator" onchange="sugerirCupom()" style="width:100%;padding:.5rem;background:#0a0f1e;color:#fff;border:1px solid #334155;border-radius:6px">
+        <option value="">Selecione...</option>
+      </select>
+    </div>
+    <div style="margin-bottom:1rem">
+      <label style="font-size:.75rem;color:#9ca3af;display:block;margin-bottom:.25rem">Email</label>
+      <input id="af-email" type="email" placeholder="email@exemplo.com" style="width:100%;padding:.5rem;background:#0a0f1e;color:#fff;border:1px solid #334155;border-radius:6px;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:1rem">
+      <label style="font-size:.75rem;color:#9ca3af;display:block;margin-bottom:.25rem">Cupom</label>
+      <input id="af-cupom" type="text" placeholder="NOME10" style="width:100%;padding:.5rem;background:#0a0f1e;color:#fff;border:1px solid #334155;border-radius:6px;box-sizing:border-box">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <div>
+        <label style="font-size:.75rem;color:#9ca3af;display:block;margin-bottom:.25rem">Chave PIX</label>
+        <input id="af-pix-chave" type="text" placeholder="CPF, email ou telefone" style="width:100%;padding:.5rem;background:#0a0f1e;color:#fff;border:1px solid #334155;border-radius:6px;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:.75rem;color:#9ca3af;display:block;margin-bottom:.25rem">Tipo PIX</label>
+        <select id="af-pix-tipo" style="width:100%;padding:.5rem;background:#0a0f1e;color:#fff;border:1px solid #334155;border-radius:6px">
+          <option value="cpf">CPF</option>
+          <option value="email">Email</option>
+          <option value="telefone">Telefone</option>
+          <option value="chave">Chave aleatória</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.5rem">
+      <button onclick="document.getElementById('modal-ativar-afiliada').style.display='none'" style="padding:.5rem 1.5rem;background:#334155;color:#fff;border:none;border-radius:6px;cursor:pointer">Cancelar</button>
+      <button onclick="salvarAfiliada()" style="padding:.5rem 1.5rem;background:#7c3aed;color:#fff;border:none;border-radius:6px;cursor:pointer">Ativar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Acesso WhatsApp Afiliada -->
+<div id="modal-acesso-wpp" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1001;align-items:center;justify-content:center">
+  <div style="background:#1e293b;border-radius:12px;padding:2rem;width:500px;max-width:90vw">
+    <h3 style="margin-bottom:1rem">Enviar Acesso via WhatsApp</h3>
+    <p style="color:#94a3b8;margin-bottom:1rem;font-size:.9rem">Afiliada ativada! Envie o acesso pelo WhatsApp:</p>
+    <textarea id="wpp-msg-afiliada" rows="8" style="width:100%;padding:.75rem;background:#0a0f1e;color:#fff;border:1px solid #334155;border-radius:6px;box-sizing:border-box;font-size:.875rem"></textarea>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1rem">
+      <button onclick="document.getElementById('modal-acesso-wpp').style.display='none'" style="padding:.5rem 1.5rem;background:#334155;color:#fff;border:none;border-radius:6px;cursor:pointer">Fechar</button>
+      <button onclick="enviarAcessoWpp()" style="padding:.5rem 1.5rem;background:#25d366;color:#fff;border:none;border-radius:6px;cursor:pointer">Enviar via WhatsApp</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
