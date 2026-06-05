@@ -1,0 +1,45 @@
+{
+  "posicionamento": {
+    "proposta_valor": "Energia limpa e foco mental o dia todo, sem crash, sem cafeína em excesso",
+    "diferenciais": ["Sem estimulantes sintéticos", "Fórmula com adaptógenos", "Resultado progressivo"],
+    "categoria": "Suplemento cognitivo premium",
+    "missao": "Dar às pessoas a clareza mental que precisam para performar no seu melhor todos os dias"
+  },
+  "persona": {
+    "nome": "Ana",
+    "idade": "28-42",
+    "ocupacao": "Empreendedora, profissional liberal, mãe que trabalha",
+    "dores": ["Cansaço crônico", "Queda de foco após almoço", "Café não resolve mais"],
+    "desejos": ["Energia consistente", "Clareza mental", "Produtividade sem ansiedade"],
+    "objecoes": ["Preço", "Funciona mesmo?", "Demora para fazer efeito"]
+  },
+  "tom_de_voz": {
+    "adjetivos": ["Confiante", "Acolhedor", "Científico sem ser chato", "Direto"],
+    "falar": ["Resultados reais", "Ciência acessível", "Comunidade", "Progressão"],
+    "nao_falar": ["Milagre", "Emagrecer", "Cura", "Substituição de tratamento médico"]
+  },
+  "copy_framework": {
+    "headline_padrao": "Você chega na tarde sem gasolina pra nada",
+    "ganchos_validados": [
+      "Todo dia às 2h da tarde meu cérebro simplesmente desliga",
+      "Café não resolve mais — descobri o motivo",
+      "30 dias testando e o que aconteceu me surpreendeu"
+    ],
+    "ctas_aprovados": ["Garanta o seu", "Experimente por 30 dias", "Ver mais depoimentos"],
+    "estrutura_copy": "Dor → Agitação → Solução → Prova → CTA"
+  },
+  "identidade_visual": {
+    "cores_primarias": ["#7c3aed", "#0a0f1e"],
+    "cores_secundarias": ["#34d399", "#fbbf24"],
+    "estilo": "Dark premium, minimalista, científico",
+    "fontes": ["Inter", "Sora"],
+    "elementos_visuais": ["Gradientes roxo-escuro", "Ícones lineares", "Fotos de pessoas reais em contexto de trabalho/foco"]
+  },
+  "pilares_conteudo": [
+    {"nome": "Educação", "descricao": "Como funciona o produto, ingredientes, ciência", "frequencia_pct": 30},
+    {"nome": "Prova Social", "descricao": "Depoimentos, resultados, antes/depois", "frequencia_pct": 25},
+    {"nome": "Dor e Identificação", "descricao": "Conteúdo que a persona reconhece como próprio", "frequencia_pct": 20},
+    {"nome": "Bastidores", "descricao": "Processo, equipe, valores da marca", "frequencia_pct": 15},
+    {"nome": "Oferta", "descricao": "Promoções, kits, urgência", "frequencia_pct": 10}
+  ]
+}
