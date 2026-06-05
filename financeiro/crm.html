@@ -3510,6 +3510,7 @@ loadCreators();
 
 // ===== AFILIADAS =====
 var _afiliadas = [];
+var _creatorsAfiliadas = []; // cache dos creators nao-afiliados para uso no modal
 var _wppAfiliadaWpp = '';
 var _wppAfiliadaNome = '';
 
@@ -3568,17 +3569,27 @@ function renderAfiliadas(lista) {
     linkPainel.href = '/afiliada'; linkPainel.target = '_blank';
     linkPainel.textContent = 'Ver Painel';
     linkPainel.style.cssText = 'background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;padding:.25rem .75rem;font-size:.8rem;text-decoration:none;margin-left:.25rem';
-    acTd.appendChild(btnPagar); acTd.appendChild(btnReset); acTd.appendChild(linkPainel);
+    var btnWpp = document.createElement('button');
+    btnWpp.innerHTML = '<span class="wpp-icon"></span>';
+    btnWpp.title = 'WhatsApp';
+    btnWpp.style.cssText = 'background:#25d366;color:#fff;border:none;border-radius:4px;padding:.25rem .5rem;cursor:pointer;font-size:.8rem;margin-left:.25rem;vertical-align:middle';
+    (function(wpp, nome){ btnWpp.onclick = function(){
+      var num = (wpp||'').replace(/\D/g,'');
+      if(num.length <= 11) num = '55' + num;
+      if(!num){ alert('WhatsApp não cadastrado para ' + nome); return; }
+      window.open('https://wa.me/' + num, '_blank');
+    }; })(a.whatsapp || a.telefone || '', a.nome || a.username);
+    acTd.appendChild(btnPagar); acTd.appendChild(btnReset); acTd.appendChild(linkPainel); acTd.appendChild(btnWpp);
   });
 }
 
 async function abrirModalAtivarAfiliada() {
   var r = await fetch('/api/creators');
-  var creators = await r.json();
+  _creatorsAfiliadas = await r.json();
   var ativos = new Set(_afiliadas.map(function(a){ return a.username; }));
   var select = document.getElementById('af-select-creator');
   select.innerHTML = '<option value="">Selecione...</option>';
-  creators.filter(function(c){ return !ativos.has(c.username); }).forEach(function(c) {
+  _creatorsAfiliadas.filter(function(c){ return !ativos.has(c.username); }).forEach(function(c) {
     var opt = document.createElement('option');
     opt.value = c.username;
     opt.textContent = (c.nome || c.username);
@@ -3597,6 +3608,10 @@ function sugerirCupom() {
   var opt = select.options[select.selectedIndex];
   var nome = (opt.textContent || username).split(' ')[0].toUpperCase().replace(/[^A-Z]/g,'');
   document.getElementById('af-cupom').value = nome.substring(0,8) + '10';
+  // Preencher WhatsApp automaticamente do cadastro do creator
+  var creator = _creatorsAfiliadas.find(function(c){ return c.username === username; });
+  var wpp = creator ? (creator.whatsapp || creator.telefone || '') : '';
+  _wppAfiliadaWpp = wpp;
 }
 
 async function salvarAfiliada() {
@@ -3618,8 +3633,11 @@ async function salvarAfiliada() {
   var nome = opt ? opt.textContent.trim() : username;
   var msg = 'Ola ' + nome.split(' ')[0] + '! Tudo bem?\n\nSou a Julia da PowerMind! Ativamos o seu acesso como afiliada.\n\nSeus dados:\n- Link: https://www.powermindbr.com.br/?cupom=' + cupom + '\n- Cupom: ' + cupom + '\n- Email: ' + email + '\n- Senha: ' + data.senha_temporaria + '\n\nAcesse seu painel em: ' + window.location.origin + '/afiliada\n\nQualquer duvida e so chamar aqui!';
   document.getElementById('wpp-msg-afiliada').value = msg;
-  var af = _afiliadas.find(function(a){ return a.username === username; });
-  _wppAfiliadaWpp = af ? (af.whatsapp || '') : '';
+  // Pega WhatsApp do cache de creators (já populado ao abrir o modal)
+  if (!_wppAfiliadaWpp) {
+    var cr = _creatorsAfiliadas.find(function(c){ return c.username === username; });
+    _wppAfiliadaWpp = cr ? (cr.whatsapp || cr.telefone || '') : '';
+  }
   _wppAfiliadaNome = nome;
   document.getElementById('modal-acesso-wpp').style.display = 'flex';
   carregarAfiliadas();
