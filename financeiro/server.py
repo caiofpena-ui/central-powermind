@@ -96,6 +96,49 @@ def save_briefings(data):
     with open(BRIEFINGS_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+def chamar_claude_api(system_prompt, user_prompt, api_key):
+    import urllib.request as urlreq
+    payload = json.dumps({
+        "model": "claude-3-5-haiku-20241022",
+        "max_tokens": 1024,
+        "system": system_prompt,
+        "messages": [{"role": "user", "content": user_prompt}]
+    }).encode('utf-8')
+    req = urlreq.Request(
+        'https://api.anthropic.com/v1/messages',
+        data=payload,
+        headers={
+            'x-api-key': api_key,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json'
+        }
+    )
+    with urlreq.urlopen(req, timeout=30) as resp:
+        result = json.loads(resp.read())
+    return result['content'][0]['text']
+
+def chamar_openai_api(system_prompt, user_prompt, api_key):
+    import urllib.request as urlreq
+    payload = json.dumps({
+        "model": "gpt-4o-mini",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "temperature": 0.8
+    }).encode('utf-8')
+    req = urlreq.Request(
+        'https://api.openai.com/v1/chat/completions',
+        data=payload,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+    )
+    with urlreq.urlopen(req, timeout=30) as resp:
+        result = json.loads(resp.read())
+    return result['choices'][0]['message']['content']
+
 def migrate_afiliada_fields():
     """Migra campos de afiliada em creators.json — adiciona campos faltantes com defaults."""
     creators = load_creators()
@@ -3723,6 +3766,150 @@ FORMATO DE SAÍDA:
                 self.send_header('Content-Type', 'application/json; charset=utf-8')
                 self.end_headers()
                 self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+
+        elif _path == '/api/brand/gerar-briefing':
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length)
+            try:
+                params = json.loads(body)
+            except Exception as e:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+                return
+
+            api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+            if not api_key:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'ANTHROPIC_API_KEY nao configurada'}).encode('utf-8'))
+                return
+
+            brand = load_brand()
+            system_prompt = f"""Você é um estrategista de conteúdo especializado em e-commerce de suplementos.
+Use os dados da marca abaixo como contexto para gerar briefings de criativo.
+
+MARCA: {json.dumps(brand, ensure_ascii=False)}
+
+Gere briefings estruturados, práticos e alinhados com o tom de voz da marca."""
+
+            tipo = params.get('tipo', 'ugc_roteiro')
+            pilar = params.get('pilar', '')
+            tema = params.get('tema_livre', '')
+            canal = params.get('canal_destino', '')
+
+            if tipo == 'ugc_roteiro':
+                user_prompt = f"""Gere um roteiro UGC completo para:
+- Pilar: {pilar}
+- Tema: {tema if tema else 'livre'}
+- Canal: {canal}
+
+Estruture assim:
+**GANCHO (0-3s):** [frase de abertura irresistível]
+**DESENVOLVIMENTO (3-25s):** [corpo do conteúdo]
+**CTA (25-30s):** [chamada para ação]
+**LEGENDA SUGERIDA:** [copy completa]
+**HASHTAGS:** [10-15 hashtags relevantes]"""
+            else:
+                user_prompt = f"""Gere um briefing de arte para:
+- Pilar: {pilar}
+- Tema: {tema if tema else 'livre'}
+- Canal: {canal}
+
+Inclua: conceito visual, headline principal, textos de suporte, CTA, orientações de design."""
+
+            try:
+                briefing_texto = chamar_claude_api(system_prompt, user_prompt, api_key)
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+                return
+
+            import uuid, datetime
+            novo = {
+                'id': str(uuid.uuid4()),
+                'criado_em': datetime.datetime.now().isoformat(),
+                'tipo': tipo,
+                'pilar': pilar,
+                'tema_livre': tema,
+                'canal_destino': canal,
+                'briefing': briefing_texto,
+                'copy_variacoes': [],
+                'status': 'rascunho'
+            }
+            briefings = load_briefings()
+            briefings.append(novo)
+            save_briefings(briefings)
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps(novo, ensure_ascii=False).encode('utf-8'))
+
+        elif _path == '/api/brand/gerar-copy':
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length)
+            try:
+                params = json.loads(body)
+            except Exception as e:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+                return
+
+            api_key = os.environ.get('OPENAI_API_KEY', '')
+            if not api_key:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'OPENAI_API_KEY nao configurada'}).encode('utf-8'))
+                return
+
+            brand = load_brand()
+            tom = brand.get('tom_de_voz', {})
+            framework = brand.get('copy_framework', {})
+
+            system_prompt = f"""Você é um copywriter especializado em e-commerce de suplementos cognitivos premium.
+
+TOM DE VOZ: {json.dumps(tom, ensure_ascii=False)}
+COPY FRAMEWORK: {json.dumps(framework, ensure_ascii=False)}
+
+Gere sempre 3 variações de copy/legenda distintas. Retorne JSON com array "variacoes" contendo 3 strings."""
+
+            pilar = params.get('pilar', '')
+            tema = params.get('tema_livre', '')
+            canal = params.get('canal_destino', '')
+
+            user_prompt = f"""Gere 3 variações de copy para post de {canal}:
+- Pilar: {pilar}
+- Tema: {tema if tema else 'livre'}
+
+Cada variação deve ter tom diferente (ex: emocional, racional, urgência).
+Retorne APENAS JSON: {{"variacoes": ["copy1", "copy2", "copy3"]}}"""
+
+            try:
+                resposta = chamar_openai_api(system_prompt, user_prompt, api_key)
+                try:
+                    dados = json.loads(resposta)
+                    variacoes = dados.get('variacoes', [resposta])
+                except Exception:
+                    variacoes = [resposta]
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+                return
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'variacoes': variacoes}, ensure_ascii=False).encode('utf-8'))
 
         else:
             self.send_response(404)
