@@ -145,7 +145,9 @@ def get_pedidos_por_cupom(cupom, token_yampi, secret_yampi):
         rows = d.get("data", [])
         if not rows: break
         for o in rows:
-            pc = (o.get("promocode") or "").upper()
+            pc_raw = o.get("promocode") or ""
+            if isinstance(pc_raw, dict): pc_raw = pc_raw.get("code","") or ""
+            pc = pc_raw.upper()
             if pc != cupom_upper: continue
             sid = o.get("status_id", 0)
             if sid in (7, 15): continue
@@ -1762,6 +1764,87 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+        elif _path == "/api/afiliada/dados":
+            token = get_token_from_request(self.headers)
+            username = validar_token_afiliada(token)
+            if not username:
+                self.send_response(401)
+                self.send_header("Content-Type","application/json")
+                self.end_headers()
+                self.wfile.write(b'{"erro":"Nao autorizado"}')
+                return
+            creators = load_creators()
+            creator = next((c for c in creators if c.get("username") == username), None)
+            if not creator:
+                self.send_response(404); self.end_headers(); return
+            env = load_env()
+            cupom = creator.get("cupom","")
+            pedidos = get_pedidos_por_cupom(cupom, env.get("YAMPI_TOKEN",""), env.get("YAMPI_SECRET","")) if cupom else []
+            from datetime import date
+            mes_atual = date.today().strftime("%Y-%m")
+            pedidos_mes = [p for p in pedidos if p["data"].startswith(mes_atual)]
+            fat_mes = sum(p["valor"] for p in pedidos_mes)
+            comissoes = load_comissoes()
+            total_pago = sum(c["comissao"] for c in comissoes
+                             if c.get("creator_username") == username and c.get("status") == "pago")
+            resp = json.dumps({
+                "creator": {
+                    "nome": creator.get("nome",""), "username": username,
+                    "foto": creator.get("foto",""), "cupom": cupom,
+                    "link_afiliado": creator.get("link_afiliado",""),
+                },
+                "kpis": {
+                    "vendas_mes": len(pedidos_mes),
+                    "faturamento_mes": round(fat_mes, 2),
+                    "comissao_acumulada": round(fat_mes * 0.10, 2),
+                    "total_recebido": round(total_pago, 2),
+                },
+                "pedidos": pedidos,
+                "pagamentos": [c for c in comissoes if c.get("creator_username") == username],
+            }, ensure_ascii=False).encode()
+            self.send_response(200)
+            self.send_header("Content-Type","application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin","*")
+            self.end_headers()
+            self.wfile.write(resp)
+            return
+
+        elif _path == "/api/admin/afiliadas":
+            creators = load_creators()
+            comissoes = load_comissoes()
+            env = load_env()
+            from datetime import date
+            mes_atual = date.today().strftime("%Y-%m")
+            resultado = []
+            for c in creators:
+                if not c.get("afiliada_ativa"): continue
+                cupom = c.get("cupom","")
+                pedidos = get_pedidos_por_cupom(cupom, env.get("YAMPI_TOKEN",""), env.get("YAMPI_SECRET","")) if cupom else []
+                pedidos_mes = [p for p in pedidos if p["data"].startswith(mes_atual)]
+                fat_mes = sum(p["valor"] for p in pedidos_mes)
+                ids_pagos = {pid for co in comissoes
+                             if co.get("creator_username")==c["username"] and co.get("status")=="pago"
+                             for pid in co.get("pedidos",[])}
+                comissao_pendente = sum(p["comissao"] for p in pedidos if str(p["numero"]) not in ids_pagos)
+                total_pago = sum(co["comissao"] for co in comissoes
+                                 if co.get("creator_username")==c["username"] and co.get("status")=="pago")
+                resultado.append({
+                    "username": c["username"], "nome": c.get("nome",""),
+                    "foto": c.get("foto",""), "cupom": cupom,
+                    "email": c.get("email",""),
+                    "whatsapp": c.get("whatsapp","") or c.get("telefone",""),
+                    "pix_chave": c.get("pix_chave",""), "pix_tipo": c.get("pix_tipo","cpf"),
+                    "vendas_mes": len(pedidos_mes), "faturamento_mes": round(fat_mes,2),
+                    "comissao_pendente": round(comissao_pendente,2), "total_pago": round(total_pago,2),
+                })
+            resp = json.dumps(resultado, ensure_ascii=False).encode()
+            self.send_response(200)
+            self.send_header("Content-Type","application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin","*")
+            self.end_headers()
+            self.wfile.write(resp)
+            return
+
         elif _path.startswith("/assets/"):
             fname = os.path.basename(_path)
             asset_file = os.path.join(os.path.dirname(__file__), "assets", fname)
