@@ -2581,6 +2581,103 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'{"ok":true}')
             return
+
+        elif _path == "/api/admin/pagar":
+            import uuid
+            from datetime import date
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            username_alvo = body.get("username")
+            env = load_env()
+            creators = load_creators()
+            comissoes = load_comissoes()
+            hoje = date.today().isoformat()
+            pagos = []
+            targets = [c for c in creators if c.get("afiliada_ativa") and
+                       (username_alvo is None or c["username"] == username_alvo)]
+            for c in targets:
+                cupom = c.get("cupom","")
+                pedidos = get_pedidos_por_cupom(cupom, env.get("YAMPI_TOKEN",""), env.get("YAMPI_SECRET","")) if cupom else []
+                ids_pagos = {pid for co in comissoes
+                             if co.get("creator_username")==c["username"] and co.get("status")=="pago"
+                             for pid in co.get("pedidos",[])}
+                novos = [p for p in pedidos if str(p["numero"]) not in ids_pagos]
+                if not novos: continue
+                fat = sum(p["valor"] for p in novos)
+                comissao = round(fat * 0.10, 2)
+                comissoes.append({
+                    "id": str(uuid.uuid4()),
+                    "creator_username": c["username"],
+                    "periodo_pagamento": hoje,
+                    "vendas": len(novos), "faturamento": round(fat,2),
+                    "comissao": comissao, "status": "pago",
+                    "pago_em": hoje, "pago_por": "Julia",
+                    "pedidos": [str(p["numero"]) for p in novos],
+                })
+                pagos.append({"username": c["username"], "nome": c.get("nome",""), "comissao": comissao})
+                _cache_cupom.pop(cupom, None)
+            save_comissoes(comissoes)
+            resp = json.dumps({"pagos": pagos, "total": len(pagos)}, ensure_ascii=False).encode()
+            self.send_response(200)
+            self.send_header("Content-Type","application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin","*")
+            self.end_headers()
+            self.wfile.write(resp)
+            return
+
+        elif _path == "/api/admin/ativar-afiliada":
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            username  = body.get("username","")
+            email     = (body.get("email","") or "").strip().lower()
+            cupom     = (body.get("cupom","") or "").upper()
+            pix_chave = body.get("pix_chave","")
+            pix_tipo  = body.get("pix_tipo","cpf")
+            if not all([username, email, cupom, pix_chave]):
+                self.send_response(400)
+                self.send_header("Content-Type","application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"erro":"Campos obrigatorios"}).encode())
+                return
+            creators = load_creators()
+            c = next((x for x in creators if x["username"] == username), None)
+            if not c:
+                self.send_response(404); self.end_headers(); return
+            from datetime import date as _date
+            nova_senha = f"PM@{_date.today().year}"
+            c.update({"afiliada_ativa": True, "email": email,
+                       "senha_hash": hash_senha(nova_senha), "cupom": cupom,
+                       "link_afiliado": f"https://www.powermindbr.com.br/?cupom={cupom}",
+                       "pix_chave": pix_chave, "pix_tipo": pix_tipo, "comissao_pct": 10})
+            save_creators(creators)
+            resp = json.dumps({"ok": True, "senha_temporaria": nova_senha}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type","application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin","*")
+            self.end_headers()
+            self.wfile.write(resp)
+            return
+
+        elif _path == "/api/admin/reset-senha":
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            username = body.get("username","")
+            creators = load_creators()
+            c = next((x for x in creators if x["username"] == username), None)
+            if not c:
+                self.send_response(404); self.end_headers(); return
+            from datetime import date as _date
+            nova_senha = f"PM@{_date.today().year}"
+            c["senha_hash"] = hash_senha(nova_senha)
+            save_creators(creators)
+            resp = json.dumps({"senha_temporaria": nova_senha}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type","application/json")
+            self.send_header("Access-Control-Allow-Origin","*")
+            self.end_headers()
+            self.wfile.write(resp)
+            return
+
         if _path == "/assets/upload":
             import cgi
             ctype, pdict = cgi.parse_header(self.headers.get('Content-Type',''))
