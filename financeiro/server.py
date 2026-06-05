@@ -4,7 +4,7 @@ PowerMind Dashboard Server — roda em localhost:8080
 Serve dados em tempo real via /api/data
 Inicia com o Mac via launchd.
 """
-import json, os, glob, random, urllib.request, urllib.parse, webbrowser, math, subprocess, hashlib, secrets
+import json, os, glob, random, urllib.request, urllib.parse, webbrowser, math, subprocess, hashlib, secrets, uuid
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime, timedelta
 from threading import Thread
@@ -3829,10 +3829,9 @@ Inclua: conceito visual, headline principal, textos de suporte, CTA, orientaçõ
                 self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
                 return
 
-            import uuid, datetime
             novo = {
                 'id': str(uuid.uuid4()),
-                'criado_em': datetime.datetime.now().isoformat(),
+                'criado_em': datetime.now().isoformat(),
                 'tipo': tipo,
                 'pilar': pilar,
                 'tema_livre': tema,
@@ -3905,6 +3904,22 @@ Retorne APENAS JSON: {{"variacoes": ["copy1", "copy2", "copy3"]}}"""
                 self.end_headers()
                 self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
                 return
+
+            # Persist copy variations to briefings.json
+            novo_copy = {
+                'id': str(uuid.uuid4()),
+                'criado_em': datetime.now().isoformat(),
+                'tipo': 'copy',
+                'pilar': pilar,
+                'tema_livre': tema,
+                'canal_destino': canal,
+                'briefing': '\n\n'.join(variacoes),
+                'copy_variacoes': variacoes,
+                'status': 'rascunho'
+            }
+            briefings = load_briefings()
+            briefings.append(novo_copy)
+            save_briefings(briefings)
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
