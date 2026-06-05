@@ -2584,7 +2584,7 @@ class Handler(BaseHTTPRequestHandler):
         elif _path == '/api/brand/get':
             brand = load_brand()
             self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.end_headers()
             self.wfile.write(json.dumps(brand, ensure_ascii=False).encode('utf-8'))
 
@@ -2593,7 +2593,7 @@ class Handler(BaseHTTPRequestHandler):
             ultimos = briefings[-20:] if len(briefings) > 20 else briefings
             ultimos_reversed = list(reversed(ultimos))
             self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.end_headers()
             self.wfile.write(json.dumps(ultimos_reversed, ensure_ascii=False).encode('utf-8'))
 
@@ -3711,12 +3711,18 @@ FORMATO DE SAÍDA:
         elif _path == '/api/brand/save':
             length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(length)
-            data = json.loads(body)
-            save_brand(data)
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({'ok': True}).encode('utf-8'))
+            try:
+                data = json.loads(body)
+                save_brand(data)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'ok': True}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
 
         else:
             self.send_response(404)
