@@ -52,11 +52,10 @@ body {
   margin-bottom: 0.5rem;
 }
 
-.login-logo h1 {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.5px;
+.login-logo img {
+  height: 48px;
+  width: auto;
+  filter: brightness(0) invert(1);
 }
 
 .login-logo .tagline {
@@ -140,10 +139,10 @@ body {
   z-index: 100;
 }
 
-.header-logo {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #fff;
+.header-logo img {
+  height: 28px;
+  width: auto;
+  filter: brightness(0) invert(1);
 }
 
 .header-creator {
@@ -402,7 +401,7 @@ tbody td {
 <div id="tela-login">
   <div class="login-box">
     <div class="login-logo">
-      <h1>PowerMind</h1>
+      <img src="/logo.png" alt="PowerMind">
       <p class="tagline">Portal de Afiliadas</p>
     </div>
     <div class="login-form">
@@ -425,7 +424,7 @@ tbody td {
 <div id="tela-dashboard">
 
   <header class="header">
-    <div class="header-logo">PowerMind</div>
+    <div class="header-logo"><img src="/logo.png" alt="PowerMind"></div>
     <div class="header-creator">
       <div class="nome" id="creator-nome"></div>
       <div class="username" id="creator-username"></div>
