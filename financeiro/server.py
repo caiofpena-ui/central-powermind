@@ -373,7 +373,50 @@ def load_env():
                 k, val = line.split("=", 1)
                 v[k.strip()] = val.strip()
     except: pass
+    # Garante que as chaves também ficam disponíveis via os.environ
+    for k, val in v.items():
+        if k not in os.environ:
+            os.environ[k] = val
     return v
+
+# Pré-carrega o .env no boot para que os.environ.get() funcione nas rotas de IA
+load_env()
+
+# ── Origens permitidas no CORS ─────────────────────────────────────────────
+_ALLOWED_ORIGINS = {
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "https://despise-starch-preppy.ngrok-free.dev",
+}
+
+def _cors_origin(request_headers):
+    """Retorna a origem permitida ou None."""
+    origin = request_headers.get("Origin", "")
+    return origin if origin in _ALLOWED_ORIGINS else None
+
+def _is_local(client_address):
+    """Verifica se a requisição vem de localhost (acesso interno)."""
+    ip = client_address[0] if client_address else ""
+    return ip in ("127.0.0.1", "::1", "localhost")
+
+# ── Rate limiting simples para login ──────────────────────────────────────
+import threading as _threading
+_login_attempts = {}   # ip -> [timestamps]
+_login_lock = _threading.Lock()
+
+def _check_rate_limit(ip, max_attempts=10, window_seconds=60):
+    """Retorna True se deve bloquear (excedeu tentativas)."""
+    now = time.time()
+    with _login_lock:
+        attempts = _login_attempts.get(ip, [])
+        # Remove tentativas fora da janela
+        attempts = [t for t in attempts if now - t < window_seconds]
+        if len(attempts) >= max_attempts:
+            _login_attempts[ip] = attempts
+            return True
+        attempts.append(now)
+        _login_attempts[ip] = attempts
+        return False
 
 # ── Estoque ────────────────────────────────────────────────────────────────
 def load_estoque():
@@ -1812,13 +1855,32 @@ loadData();
 
 # ── Handler HTTP ───────────────────────────────────────────────────────────
 class Handler(BaseHTTPRequestHandler):
+    def _cors_header(self):
+        origin = _cors_origin(self.headers)
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+        else:
+            # Sem Origin (ex: chamada direta do browser no localhost sem header)
+            self.send_header("Access-Control-Allow-Origin", "http://localhost:8080")
+
     def _json(self, obj, status=200):
         body = json.dumps(obj, ensure_ascii=False).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self._cors_header()
         self.end_headers()
         self.wfile.write(body)
+
+    def _require_local(self):
+        """Retorna True se a requisição veio de localhost. Envia 403 caso contrário."""
+        if not _is_local(self.client_address):
+            self.send_response(403)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(json.dumps({"erro": "Acesso restrito"}).encode())
+            return False
+        return True
 
     def do_GET(self):
         _path = self.path.split('?')[0]
@@ -1827,7 +1889,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps(data, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
@@ -1871,12 +1933,13 @@ class Handler(BaseHTTPRequestHandler):
             }, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type","application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin","*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(resp)
             return
 
         elif _path == "/api/admin/afiliadas":
+            if not self._require_local(): return
             creators = load_creators()
             comissoes = load_comissoes()
             env = load_env()
@@ -1907,7 +1970,7 @@ class Handler(BaseHTTPRequestHandler):
             resp = json.dumps(resultado, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type","application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin","*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(resp)
             return
@@ -1949,7 +2012,7 @@ class Handler(BaseHTTPRequestHandler):
                     body = f.read()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
             except FileNotFoundError:
@@ -1984,7 +2047,7 @@ class Handler(BaseHTTPRequestHandler):
                     body = f.read()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
             except FileNotFoundError:
@@ -1997,7 +2060,7 @@ class Handler(BaseHTTPRequestHandler):
                     body = f.read()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
             except FileNotFoundError:
@@ -2010,7 +2073,7 @@ class Handler(BaseHTTPRequestHandler):
                     body = f.read()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
             except FileNotFoundError:
@@ -2032,7 +2095,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps({"gasto_ads": gasto_ads, "dias": len(dias), "mes": mes}, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(body)
 
@@ -2044,7 +2107,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps(data, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(body)
 
@@ -2067,7 +2130,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps(data, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(body)
 
@@ -2089,7 +2152,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps(data, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(body)
 
@@ -2098,7 +2161,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps(creators, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(body)
 
@@ -2107,7 +2170,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps(agenda, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(body)
 
@@ -2131,7 +2194,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps(payload, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(body)
 
@@ -2163,7 +2226,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps(payload, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(body)
 
@@ -2185,7 +2248,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-Type", content_type)
                 self.send_header("Cache-Control", "max-age=86400")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(img_data)
             except Exception:
@@ -2262,7 +2325,7 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.dumps({"pedidos": pedidos}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
@@ -2270,7 +2333,7 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.dumps({"erro": str(e)}).encode()
                 self.send_response(500)
                 self.send_header("Content-Type","application/json")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -2335,7 +2398,7 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.dumps({"recompra": recompra}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
@@ -2343,7 +2406,7 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.dumps({"erro": str(e)}).encode()
                 self.send_response(500)
                 self.send_header("Content-Type","application/json")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -2393,7 +2456,7 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.dumps({"campanhas":camps,"totais":totais_fmt}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
@@ -2401,7 +2464,7 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.dumps({"erro": str(e)}).encode()
                 self.send_response(500)
                 self.send_header("Content-Type","application/json")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -2411,11 +2474,11 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.dumps(est, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
             except Exception as e:
-                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080"); self.end_headers()
                 self.wfile.write(json.dumps({"erro":str(e)}).encode())
 
         elif _path == "/api/estoque/sincronizar":
@@ -2425,11 +2488,11 @@ class Handler(BaseHTTPRequestHandler):
                 body  = json.dumps({"ok": True, "estoque": est}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
             except Exception as e:
-                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080"); self.end_headers()
                 self.wfile.write(json.dumps({"erro":str(e)}).encode())
 
         elif _path == "/api/expedicao/envios-me":
@@ -2439,11 +2502,11 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.dumps({"ok": True, "envios": dados, "arquivados": arquivados}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
             except Exception as e:
-                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080"); self.end_headers()
                 self.wfile.write(json.dumps({"erro":str(e)}).encode())
 
         elif _path == "/api/expedicao/sincronizar-me":
@@ -2587,11 +2650,11 @@ class Handler(BaseHTTPRequestHandler):
                 }, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
             except Exception as e:
-                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080"); self.end_headers()
                 self.wfile.write(json.dumps({"erro":str(e)}).encode())
 
         elif _path == "/api/expedicao/pedidos":
@@ -2600,7 +2663,7 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.dumps({"pedidos": pedidos, "total": len(pedidos)}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
@@ -2608,7 +2671,7 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.dumps({"erro": str(e)}).encode()
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -2646,14 +2709,22 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self._cors_header()
         self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.end_headers()
 
     def do_POST(self):
         _path = self.path.split('?')[0]
         if _path == "/api/afiliada/login":
+            # Rate limiting: máx 10 tentativas por IP por minuto
+            client_ip = self.client_address[0]
+            if _check_rate_limit(client_ip, max_attempts=10, window_seconds=60):
+                self.send_response(429)
+                self.send_header("Content-Type","application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"erro":"Muitas tentativas. Aguarde 1 minuto."}).encode())
+                return
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length) or b"{}")
             email = (body.get("email") or "").strip().lower()
@@ -2675,7 +2746,7 @@ class Handler(BaseHTTPRequestHandler):
                                "foto":creator.get("foto","")}).encode()
             self.send_response(200)
             self.send_header("Content-Type","application/json")
-            self.send_header("Access-Control-Allow-Origin","*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(resp)
             return
@@ -2685,12 +2756,13 @@ class Handler(BaseHTTPRequestHandler):
             revogar_token_afiliada(body.get("token",""))
             self.send_response(200)
             self.send_header("Content-Type","application/json")
-            self.send_header("Access-Control-Allow-Origin","*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(b'{"ok":true}')
             return
 
         elif _path == "/api/admin/pagar":
+            if not self._require_local(): return
             import uuid
             from datetime import date
             length = int(self.headers.get("Content-Length", 0))
@@ -2728,12 +2800,13 @@ class Handler(BaseHTTPRequestHandler):
             resp = json.dumps({"pagos": pagos, "total": len(pagos)}, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type","application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin","*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(resp)
             return
 
         elif _path == "/api/admin/ativar-afiliada":
+            if not self._require_local(): return
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length) or b"{}")
             username  = body.get("username","")
@@ -2761,12 +2834,13 @@ class Handler(BaseHTTPRequestHandler):
             resp = json.dumps({"ok": True, "senha_temporaria": nova_senha}).encode()
             self.send_response(200)
             self.send_header("Content-Type","application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin","*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(resp)
             return
 
         elif _path == "/api/admin/reset-senha":
+            if not self._require_local(): return
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length) or b"{}")
             username = body.get("username","")
@@ -2781,7 +2855,7 @@ class Handler(BaseHTTPRequestHandler):
             resp = json.dumps({"senha_temporaria": nova_senha}).encode()
             self.send_response(200)
             self.send_header("Content-Type","application/json")
-            self.send_header("Access-Control-Allow-Origin","*")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(resp)
             return
@@ -2813,13 +2887,13 @@ class Handler(BaseHTTPRequestHandler):
                 resp    = json.dumps(rel, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(json.dumps({"erro": str(e)}).encode())
             return
@@ -2833,7 +2907,7 @@ class Handler(BaseHTTPRequestHandler):
                 resp   = json.dumps(saved, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
@@ -2856,7 +2930,7 @@ class Handler(BaseHTTPRequestHandler):
                     resp = json.dumps({"ok": False, "erro": "não encontrado"}).encode()
                     self.send_response(404)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
@@ -2887,7 +2961,7 @@ class Handler(BaseHTTPRequestHandler):
                 resp = json.dumps({"ok": True, "fixos": fixos}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
@@ -2924,7 +2998,7 @@ class Handler(BaseHTTPRequestHandler):
                 resp = json.dumps({"ok": True}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
@@ -2944,7 +3018,7 @@ class Handler(BaseHTTPRequestHandler):
                 resp = json.dumps({"ok": True}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
@@ -2962,7 +3036,7 @@ class Handler(BaseHTTPRequestHandler):
                 resp     = json.dumps(result, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
@@ -3063,7 +3137,7 @@ class Handler(BaseHTTPRequestHandler):
                 resp = json.dumps({"ok": True}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
@@ -3155,7 +3229,7 @@ class Handler(BaseHTTPRequestHandler):
                 resp = json.dumps({"ok": True}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
@@ -3181,7 +3255,7 @@ class Handler(BaseHTTPRequestHandler):
                     resp = json.dumps({"ok": False, "error": f"Creator '{username}' não encontrado. Salve o creator antes de criar a pasta."}).encode()
                     self.send_response(404)
                     self.send_header("Content-Type", "application/json; charset=utf-8")
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                     self.end_headers()
                     self.wfile.write(resp)
                     return
@@ -3193,7 +3267,7 @@ class Handler(BaseHTTPRequestHandler):
                     resp = json.dumps({"ok": True, "link": link}, ensure_ascii=False).encode()
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json; charset=utf-8")
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                     self.end_headers()
                     self.wfile.write(resp)
                     return
@@ -3210,7 +3284,7 @@ class Handler(BaseHTTPRequestHandler):
                     resp = json.dumps({"ok": False, "error": "Falha ao criar pasta no Drive. Verifique o Apps Script."}).encode()
                     self.send_response(500)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
@@ -3235,7 +3309,7 @@ class Handler(BaseHTTPRequestHandler):
                     resp = json.dumps({"error": "API key não configurada"}).encode()
                     self.send_response(500)
                     self.send_header("Content-Type", "application/json; charset=utf-8")
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                     self.end_headers()
                     self.wfile.write(resp)
                     return
@@ -3352,14 +3426,14 @@ FORMATO DE SAÍDA:
                 resp = json.dumps({"reply": reply}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
                 resp = json.dumps({"error": str(e)}).encode()
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
 
@@ -3403,11 +3477,11 @@ FORMATO DE SAÍDA:
                 resp = json.dumps({"ok": True, "movimentacao": mov, "estoque": load_estoque()}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
-                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080"); self.end_headers()
                 self.wfile.write(json.dumps({"erro":str(e)}).encode())
 
         elif _path == "/api/estoque/ajuste":
@@ -3425,11 +3499,11 @@ FORMATO DE SAÍDA:
                 resp = json.dumps({"ok": True, "antes": antes, "depois": novo_qtd, "movimentacao": mov}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
-                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080"); self.end_headers()
                 self.wfile.write(json.dumps({"erro":str(e)}).encode())
 
         # ── Expedição / Melhor Envio ────────────────────────────────────────
@@ -3460,13 +3534,13 @@ FORMATO DE SAÍDA:
                 resp = json.dumps(result, ensure_ascii=False).encode()
                 self.send_response(200 if code < 400 else code)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(json.dumps({"erro": str(e)}).encode())
 
@@ -3582,13 +3656,13 @@ FORMATO DE SAÍDA:
                 }, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(json.dumps({"erro": str(e)}).encode())
 
@@ -3603,11 +3677,11 @@ FORMATO DE SAÍDA:
                 print_url = print_result.get("url","")
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(json.dumps({"ok":True,"print_url":print_url}, ensure_ascii=False).encode())
             except Exception as e:
-                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080"); self.end_headers()
                 self.wfile.write(json.dumps({"erro":str(e)}).encode())
 
         elif _path == "/api/expedicao/cancelar-me":
@@ -3628,11 +3702,11 @@ FORMATO DE SAÍDA:
                             json.dump(envios, f, indent=2, ensure_ascii=False)
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(json.dumps({"ok": cancel_code < 400, "result": cancel_result}, ensure_ascii=False).encode())
             except Exception as e:
-                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080"); self.end_headers()
                 self.wfile.write(json.dumps({"erro":str(e)}).encode())
 
         elif _path == "/api/expedicao/arquivar":
@@ -3656,11 +3730,11 @@ FORMATO DE SAÍDA:
                 save_arquivados(arq)
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(json.dumps({"ok": True, "arquivados": arq}).encode())
             except Exception as e:
-                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin","*"); self.end_headers()
+                self.send_response(500); self.send_header("Content-Type","application/json"); self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080"); self.end_headers()
                 self.wfile.write(json.dumps({"erro":str(e)}).encode())
 
         elif _path == "/api/expedicao/despachar-todas":
@@ -3741,13 +3815,13 @@ FORMATO DE SAÍDA:
                 resp = json.dumps({"resultados": resultados, "total": len(resultados)}, ensure_ascii=False).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(resp)
             except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(json.dumps({"erro": str(e)}).encode())
 
