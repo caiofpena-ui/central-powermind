@@ -3573,12 +3573,23 @@ function renderAfiliadas(lista) {
     btnWpp.innerHTML = '<span class="wpp-icon"></span>';
     btnWpp.title = 'WhatsApp';
     btnWpp.style.cssText = 'background:#25d366;color:#fff;border:none;border-radius:4px;padding:.25rem .5rem;cursor:pointer;font-size:.8rem;margin-left:.25rem;vertical-align:middle';
-    (function(wpp, nome){ btnWpp.onclick = function(){
-      var num = (wpp||'').replace(/\D/g,'');
+    (function(af){ btnWpp.onclick = function(){
+      var wpp = af.whatsapp || af.telefone || '';
+      var num = wpp.replace(/\D/g,'');
       if(num.length <= 11) num = '55' + num;
-      if(!num){ alert('WhatsApp não cadastrado para ' + nome); return; }
-      window.open('https://wa.me/' + num, '_blank');
-    }; })(a.whatsapp || a.telefone || '', a.nome || a.username);
+      if(!num){ alert('WhatsApp não cadastrado para ' + (af.nome||af.username)); return; }
+      var primeiroNome = (af.nome || af.username).split(' ')[0];
+      var msg = 'Ola ' + primeiroNome + '! Tudo bem?\n\n'
+        + 'Sou a Julia da PowerMind! Ativamos o seu acesso como afiliada.\n\n'
+        + 'Seus dados de acesso:\n'
+        + '- Link: https://www.powermindbr.com.br/?cupom=' + af.cupom + '\n'
+        + '- Cupom: ' + af.cupom + '\n'
+        + '- Email: ' + af.email + '\n'
+        + '- Senha: PM@2026\n\n'
+        + 'Acesse seu painel em: ' + window.location.origin + '/afiliada\n\n'
+        + 'Qualquer duvida e so chamar aqui!';
+      window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+    }; })(a);
     acTd.appendChild(btnPagar); acTd.appendChild(btnReset); acTd.appendChild(linkPainel); acTd.appendChild(btnWpp);
   });
 }
