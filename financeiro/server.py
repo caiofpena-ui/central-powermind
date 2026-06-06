@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from threading import Thread
 import time
 
-PORT             = 8080
+PORT             = int(os.environ.get("PORT", 8090))
 ENV_FILE         = os.path.join(os.path.dirname(__file__), "..", ".env")
 HIST_DIR         = os.path.join(os.path.dirname(__file__), "historico")
 LANC_FILE        = os.path.join(os.path.dirname(__file__), "lancamentos.json")
@@ -535,6 +535,8 @@ def _verificar_senha_dashboard(senha, stored):
 _ALLOWED_ORIGINS = {
     "http://localhost:8080",
     "http://127.0.0.1:8080",
+    "http://localhost:8090",
+    "http://127.0.0.1:8090",
     "https://despise-starch-preppy.ngrok-free.dev",
     "https://dashboard.powermindbr.com.br",
     "https://painel.powermindbr.com.br",
