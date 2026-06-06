@@ -218,6 +218,30 @@ def get_token_from_request(headers):
     auth = headers.get("Authorization", "")
     return auth[7:] if auth.startswith("Bearer ") else ""
 
+# ── Convites de cadastro de afiliada ────────────────────────────────────────
+_CONVITES_FILE = os.path.join(os.path.dirname(__file__), "convites_afiliada.json")
+
+def _load_convites():
+    try:
+        with open(_CONVITES_FILE) as f: return json.load(f)
+    except: return {}
+
+def _save_convites(c):
+    with open(_CONVITES_FILE, "w") as f: json.dump(c, f, ensure_ascii=False, indent=2)
+
+def gerar_convite_afiliada(username, nome):
+    convites = _load_convites()
+    token = secrets.token_hex(24)
+    convites[token] = {
+        "username": username,
+        "nome": nome,
+        "criado_em": datetime.now().isoformat(),
+        "status": "pendente",
+        "dados": {}
+    }
+    _save_convites(convites)
+    return token
+
 _cache_cupom = {}
 CACHE_TTL = 120  # 2 min
 
@@ -512,7 +536,14 @@ _ALLOWED_ORIGINS = {
     "http://localhost:8080",
     "http://127.0.0.1:8080",
     "https://despise-starch-preppy.ngrok-free.dev",
+    "https://dashboard.powermindbr.com.br",
+    "https://painel.powermindbr.com.br",
 }
+
+def _get_base_url():
+    """Retorna a URL base pública do servidor (configurável via .env)."""
+    env = load_env()
+    return env.get("BASE_URL", "https://despise-starch-preppy.ngrok-free.dev").rstrip("/")
 
 def _cors_origin(request_headers):
     """Retorna a origem permitida ou None."""
@@ -2284,6 +2315,20 @@ class Handler(BaseHTTPRequestHandler):
             except FileNotFoundError:
                 self.send_response(404); self.end_headers(); return
 
+        elif self.path.split('?')[0] == "/logo-white.png":
+            logo_file = os.path.join(os.path.dirname(__file__), "logo-white.png")
+            try:
+                with open(logo_file, "rb") as f:
+                    body = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "image/png")
+                self.send_header("Cache-Control", "max-age=86400")
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            except FileNotFoundError:
+                self.send_response(404); self.end_headers(); return
+
         elif self.path.split('?')[0] == "/logo.png":
             logo_file = os.path.join(os.path.dirname(__file__), "logo.png")
             try:
@@ -2333,6 +2378,129 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(body)
             except FileNotFoundError:
                 self.send_response(404); self.end_headers()
+            return
+
+        elif self.path.startswith("/cadastro-afiliada"):
+            from urllib.parse import urlparse, parse_qs
+            qs = parse_qs(urlparse(self.path).query)
+            token = qs.get("t", [""])[0]
+            convites = _load_convites()
+            conv = convites.get(token)
+            if not conv:
+                body = b"<h2>Link invalido ou expirado.</h2>"
+                self.send_response(404)
+                self.send_header("Content-Type","text/html; charset=utf-8")
+                self.end_headers(); self.wfile.write(body); return
+            nome = conv.get("nome","")
+            nome_safe = nome.replace("<","&lt;").replace(">","&gt;")
+            token_safe = token.replace("<","&lt;").replace(">","&gt;")
+            html = ("""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadastro Afiliada PowerMind</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0f1e; color: #fff; font-family: -apple-system, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .card { background: #131929; border: 1px solid #1e2d4a; border-radius: 16px; padding: 32px 28px; max-width: 420px; width: 100%; }
+  h2 { text-align: center; font-size: 1.3rem; margin-bottom: 6px; }
+  .sub { text-align: center; color: #94a3b8; font-size: .875rem; margin-bottom: 28px; }
+  label { display: block; font-size: .8rem; color: #94a3b8; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  input, select { width: 100%; background: #0d1526; border: 1px solid #1e2d4a; color: #fff; border-radius: 8px; padding: 12px 14px; font-size: .95rem; margin-bottom: 18px; outline: none; }
+  input:focus, select:focus { border-color: #7c3aed; }
+  select option { background: #0d1526; }
+  .btn { width: 100%; background: #7c3aed; border: none; color: #fff; border-radius: 10px; padding: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; }
+  .msg { text-align: center; margin-top: 18px; font-size: .9rem; }
+  .ok { color: #4ade80; } .err { color: #f87171; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div style="text-align:center;margin-bottom:20px;">
+    <img src="/logo-white.png" alt="PowerMind" style="height:48px;object-fit:contain;">
+  </div>
+  <h2>Ola, """ + nome_safe + """! 👋</h2>
+  <p class="sub">Preencha seus dados para se tornar afiliada PowerMind</p>
+  <form id="form">
+    <input type="hidden" id="tok" value=\"""" + token_safe + """\">
+    <label>E-mail</label>
+    <input type="email" id="email" placeholder="seu@email.com" required>
+    <label>Chave PIX</label>
+    <input type="text" id="pix_chave" placeholder="CPF, e-mail ou telefone" required>
+    <label>Tipo da Chave PIX</label>
+    <select id="pix_tipo">
+      <option value="cpf">CPF</option>
+      <option value="email">E-mail</option>
+      <option value="telefone">Telefone</option>
+      <option value="aleatoria">Chave aleatoria</option>
+    </select>
+    <button class="btn" type="submit">Enviar dados</button>
+  </form>
+  <p class="msg" id="msg"></p>
+</div>
+<script>
+document.getElementById('form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  var btn = document.querySelector('.btn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    var r = await fetch('/api/afiliada/cadastro', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        token: document.getElementById('tok').value,
+        email: document.getElementById('email').value.trim(),
+        pix_chave: document.getElementById('pix_chave').value.trim(),
+        pix_tipo: document.getElementById('pix_tipo').value
+      })
+    });
+    var d = await r.json();
+    var msg = document.getElementById('msg');
+    if(d.ok) {
+      document.getElementById('form').style.display = 'none';
+      msg.className = 'msg ok';
+      msg.textContent = 'Dados recebidos! Em breve voce recebera seu link de acesso.';
+    } else {
+      msg.className = 'msg err';
+      msg.textContent = d.erro || 'Erro ao enviar.';
+      btn.disabled = false; btn.textContent = 'Enviar dados';
+    }
+  } catch(ex) {
+    document.getElementById('msg').className = 'msg err';
+    document.getElementById('msg').textContent = 'Erro de conexao.';
+    btn.disabled = false; btn.textContent = 'Enviar dados';
+  }
+});
+</script>
+</body>
+</html>""").encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type","text/html; charset=utf-8")
+            self.send_header("Cache-Control","no-cache")
+            self.end_headers(); self.wfile.write(html); return
+
+        elif _path == "/api/admin/gerar-convite-afiliada":
+            if not self._require_admin(): return
+            from urllib.parse import urlparse, parse_qs
+            qs = parse_qs(urlparse(self.path).query)
+            username = qs.get("username", [""])[0]
+            if not username:
+                self._json({"ok": False, "erro": "username obrigatorio"}); return
+            creators = load_creators()
+            creator = next((c for c in creators if c.get("username") == username), None)
+            if not creator:
+                self._json({"ok": False, "erro": "Creator nao encontrado"}); return
+            nome = creator.get("nome", username)
+            token = gerar_convite_afiliada(username, nome)
+            base = _get_base_url()
+            link = f"{base}/cadastro-afiliada?t={token}"
+            self._json({"ok": True, "link": link, "token": token})
+            return
+
+        elif _path == "/api/admin/convites-afiliada":
+            if not self._require_admin(): return
+            self._json(_load_convites())
             return
 
         elif self.path.split('?')[0] in ("/cadastro", "/cadastro.html"):
@@ -3116,6 +3284,29 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
             self.end_headers()
             self.wfile.write(b'{"ok":true}')
+            return
+
+        elif _path == "/api/afiliada/cadastro":
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            token = body.get("token", "")
+            convites = _load_convites()
+            conv = convites.get(token)
+            if not conv:
+                self._json({"ok": False, "erro": "Link invalido ou expirado"}); return
+            if conv.get("status") == "preenchido":
+                self._json({"ok": False, "erro": "Este link ja foi utilizado"}); return
+            email = body.get("email", "").strip()
+            pix_chave = body.get("pix_chave", "").strip()
+            pix_tipo = body.get("pix_tipo", "cpf").strip()
+            if not email or not pix_chave:
+                self._json({"ok": False, "erro": "Email e chave PIX sao obrigatorios"}); return
+            conv["status"] = "preenchido"
+            conv["dados"] = {"email": email, "pix_chave": pix_chave, "pix_tipo": pix_tipo}
+            conv["preenchido_em"] = datetime.now().isoformat()
+            convites[token] = conv
+            _save_convites(convites)
+            self._json({"ok": True})
             return
 
         elif _path == "/api/afiliada/push-subscribe":

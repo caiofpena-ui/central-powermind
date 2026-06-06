@@ -43,33 +43,33 @@ def gerar_texto(ag, creator):
     restricoes = ac.get("restricoes", "")
 
     bloco_obrigacoes = ""
-    if cupom:     bloco_obrigacoes += f"🏷️ *Cupom:* {cupom}\n"
-    if mencoes:   bloco_obrigacoes += f"👤 *Marcar:* {mencoes}\n"
-    if hashtags:  bloco_obrigacoes += f"#️⃣ *Hashtags:* {hashtags}\n"
+    if cupom:     bloco_obrigacoes += f"*Cupom:* {cupom}\n"
+    if mencoes:   bloco_obrigacoes += f"*Marcar:* {mencoes}\n"
+    if hashtags:  bloco_obrigacoes += f"{hashtags}\n"
     if aprovacao == "sim":
         prazo = ac.get("prazo_rascunho", 1)
-        bloco_obrigacoes += f"✅ *Atenção:* envie o rascunho {prazo} dia(s) antes para aprovação!\n"
+        bloco_obrigacoes += f"*Lembre:* envie o rascunho {prazo} dia(s) antes para aprovacao!\n"
 
-    bloco_restricoes = f"\n⚠️ *Não esqueça:* {restricoes}" if restricoes else ""
+    bloco_restricoes = f"\n*Nao esqueca:* {restricoes}" if restricoes else ""
 
     templates = [
-        f"Oi, {primeiro}! 🌟\n\nTudo bem? Passando aqui com um lembrete especial: amanhã é o dia do nosso {tipo_icon} *{tipo}* {('às *' + hora + '*') if hora else ''}! 🎉\n\n"
-        + (f"📌 *Briefing:* {brief}\n\n" if brief else "")
+        f"Oi, {primeiro}! Tudo bem?\n\nPassando rapidinho aqui pra te lembrar: amanhã é o dia do nosso {tipo_icon} *{tipo}*{(' às *' + hora + '*') if hora else ''}!\n\n"
+        + (f"{brief}\n\n" if brief else "")
         + (bloco_obrigacoes + "\n" if bloco_obrigacoes else "")
         + bloco_restricoes
-        + f"\nQualquer dúvida, estou aqui! Você vai arrebentar 💚\n\n— Equipe PowerMind 💪",
+        + f"\nQualquer dúvida é só me chamar, tô aqui! Você vai arrasar!\n\n— Julia, PowerMind",
 
-        f"Oii {primeiro}! ☀️\n\nLembrete do nosso {tipo_icon} *{tipo}* de amanhã{(' às *' + hora + '*') if hora else ''}! 🙌\n\n"
-        + (f"✍️ _{brief}_\n\n" if brief else "")
+        f"Oii {primeiro}! ☀️\n\nLembretinho aqui — nosso {tipo_icon} *{tipo}* é amanhã{(' às *' + hora + '*') if hora else ''}! 🙌\n\n"
+        + (f"_{brief}_\n\n" if brief else "")
         + (bloco_obrigacoes + "\n" if bloco_obrigacoes else "")
         + bloco_restricoes
-        + f"\nObrigado por fazer parte da família PowerMind! 🔥\n\n— PowerMind 💚",
+        + f"\nMuito feliz de ter você nessa parceria! Bora fazer bonito juntos 🔥\n\n— Julia, PowerMind",
 
-        f"Boa tarde, {primeiro}! 🌿\n\nO nosso combinado de amanhã — {tipo_icon} *{tipo}* {('às ' + hora) if hora else ''} — está chegando! 🚀\n\n"
-        + (f"📋 {brief}\n\n" if brief else "")
+        f"Oi {primeiro}!\n\nNosso {tipo_icon} *{tipo}* de amanhã{(' às ' + hora) if hora else ''} tá chegando!\n\n"
+        + (f"{brief}\n\n" if brief else "")
         + (bloco_obrigacoes + "\n" if bloco_obrigacoes else "")
         + bloco_restricoes
-        + f"\nConte com a gente sempre! Vai ser incrível 🌟\n\n— Equipe PowerMind",
+        + f"\nPode contar comigo sempre! Qualquer coisa me fala 💪\n\n— Julia, PowerMind",
     ]
     return random.choice(templates)
 
@@ -138,11 +138,11 @@ def gerar_texto_atraso(ag, creator):
     hora     = ag.get("hora", "")
     tipo_icon = {"Reels":"🎬","Stories":"📲","Feed":"🖼️","TikTok":"🎵","Live":"🔴"}.get(tipo, "📌")
     return (
-        f"Oi {primeiro}! 😊\n\n"
-        f"Vi que o nosso {tipo_icon} *{tipo}* {('das ' + hora) if hora else 'de hoje'} ainda "
-        f"não apareceu no feed. Tudo certo por aí?\n\n"
-        f"Se precisar de ajuda com o briefing ou tiver algum imprevisto, me chama aqui! 💬\n\n"
-        f"— Equipe PowerMind 💚"
+        f"Oi {primeiro}!\n\n"
+        f"Vi que o nosso {tipo_icon} *{tipo}* {('das ' + hora) if hora else 'de hoje'} ainda não apareceu. "
+        f"Tudo bem por aí?\n\n"
+        f"Sem pressão! Se tiver algum imprevisto ou precisar de mais tempo, me fala aqui que a gente resolve juntos.\n\n"
+        f"— Julia, PowerMind"
     )
 
 def check_atraso():

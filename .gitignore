@@ -51,3 +51,19 @@ __pycache__/
 
 # ── Node ──
 node_modules/
+
+# ── Dados sensíveis (não subir para VPS via git) ──
+financeiro/afiliada_tokens.json
+financeiro/convites_afiliada.json
+financeiro/lancamentos.json
+financeiro/lancamentos_*.json
+financeiro/comissoes.json
+financeiro/expedicao_envios.json
+financeiro/expedicao_arquivados.json
+financeiro/contratos_assinados.json
+financeiro/agenda.json
+
+# ── ZIP e backups VPS ──
+financeiro/backup_vps_*/
+financeiro/backup_vps_*.zip
+deploy_vps.sh

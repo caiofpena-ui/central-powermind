@@ -1,0 +1,17 @@
+[Unit]
+Description=PowerMind Dashboard Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/powermind/financeiro
+ExecStart=/usr/bin/python3 /opt/powermind/financeiro/server.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/powermind.log
+StandardError=append:/var/log/powermind.log
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

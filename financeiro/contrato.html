@@ -7,7 +7,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#0f1117;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 40px}
-.logo{font-size:1.4rem;font-weight:900;color:#fff;letter-spacing:1px;margin-bottom:4px;text-align:center}
+.logo{margin-bottom:8px;text-align:center}
 .logo span{color:#3b82f6}
 .sub{font-size:.78rem;color:#888;margin-bottom:24px;text-align:center}
 .container{width:100%;max-width:520px}
@@ -57,7 +57,7 @@ canvas{display:block;width:100%;cursor:crosshair}
 <body>
 
 <div class="container">
-  <div class="logo">POWER<span>MIND</span></div>
+  <div class="logo"><img src="/logo.png" alt="PowerMind" style="height:52px;width:auto;filter:brightness(0) invert(1)"></div>
   <div class="sub">Contrato de Parceria e Uso de Imagem</div>
 
   <div id="ct-status-badge" style="display:none;margin-bottom:18px;border-radius:10px;padding:14px 18px;align-items:center;gap:12px;font-size:.88rem;font-weight:700"></div>
@@ -68,7 +68,7 @@ canvas{display:block;width:100%;cursor:crosshair}
     <div class="paper">
       <!-- Cabeçalho -->
       <div style="text-align:center;border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:18px">
-        <div style="font-size:1.3rem;font-weight:900;letter-spacing:2px;color:#111">POWERMIND</div>
+        <img src="/logo.png" alt="PowerMind" style="height:48px;width:auto;display:block;margin:0 auto 6px">
         <div style="font-size:.72rem;color:#555;margin-top:2px;letter-spacing:.5px">CONTRATO DE PARCERIA E AUTORIZAÇÃO DE USO DE IMAGEM</div>
       </div>
 
@@ -568,6 +568,44 @@ async function enviarContrato(){
     });
     var res = await r.json();
     if(res.ok){
+      // Gravar assinatura nos elementos do contrato (para PDF funcionar)
+      var assinaturaDataURL = canvas.toDataURL('image/png');
+      var agora = dataHoje();
+      ['ct-assinatura-img','ct-cron-assinatura-img'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el){ el.src = assinaturaDataURL; el.style.display = 'block'; }
+      });
+      ['ct-assinatura-vazia','ct-cron-assinatura-vazia'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.style.display = 'none';
+      });
+      ['ct-data-assinatura-rodape','ct-cron-data-rodape'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.textContent = 'Assinado digitalmente em: ' + agora;
+      });
+      // Atualizar badge para "Assinado"
+      var badge = document.getElementById('ct-status-badge');
+      if(badge){
+        badge.style.cssText = 'display:flex;margin-bottom:18px;border-radius:10px;padding:14px 18px;align-items:center;gap:12px;font-size:.88rem;font-weight:700;background:#052e16;border:1.5px solid #16a34a;color:#4ade80';
+        var iconSpan = document.createElement('span');
+        iconSpan.style.fontSize = '1.5rem';
+        iconSpan.textContent = '✅';
+        var textDiv = document.createElement('div');
+        var linha1 = document.createElement('div');
+        linha1.style.fontSize = '1rem';
+        linha1.textContent = 'Contrato Assinado';
+        var linha2 = document.createElement('div');
+        linha2.style.cssText = 'font-weight:400;font-size:.78rem;color:#86efac;margin-top:2px';
+        linha2.textContent = 'Assinado em: ' + agora;
+        textDiv.appendChild(linha1);
+        textDiv.appendChild(linha2);
+        badge.textContent = '';
+        badge.appendChild(iconSpan);
+        badge.appendChild(textDiv);
+      }
+      // Esconder área de assinatura
+      var signSection = document.querySelector('.sign-section');
+      if(signSection) signSection.style.display = 'none';
       document.getElementById('contrato-wrap').style.display = 'none';
       document.getElementById('sucesso').style.display = 'flex';
     } else throw new Error('erro');

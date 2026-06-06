@@ -114,6 +114,15 @@
 
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 </style>
+<script>
+(function(){
+  var t=localStorage.getItem('pm_token'), exp=localStorage.getItem('pm_token_exp');
+  if(!t||!exp||Date.now()>=parseInt(exp)){
+    localStorage.removeItem('pm_token'); localStorage.removeItem('pm_token_exp');
+    window.location.replace('/login?next='+encodeURIComponent(window.location.pathname));
+  }
+})();
+</script>
 </head>
 <body>
 
@@ -375,6 +384,16 @@
 
 <script>
 const API = window.location.origin;
+
+// Modo embutido: oculta sidebar quando carregado via ?embedded=1
+if (new URLSearchParams(window.location.search).get('embedded') === '1') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const sb = document.querySelector('.sidebar');
+    if (sb) sb.style.display = 'none';
+    const main = document.querySelector('.main');
+    if (main) main.style.borderRadius = '0';
+  });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   carregarBrand();

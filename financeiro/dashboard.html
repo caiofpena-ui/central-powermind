@@ -11,7 +11,7 @@
   .header{background:linear-gradient(135deg,#1a1d2e,#252836);padding:24px 32px;border-bottom:1px solid #2d3047;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
   .header h1{font-size:1.6rem;font-weight:700;color:#fff}
   .header h1 span{color:#6c63ff}
-  .logo-img{height:36px;width:auto;display:block}
+  .logo-img{height:23px;width:auto;display:block;filter:brightness(0) invert(1)}
   .header .ts{font-size:.82rem;color:#888;margin-top:4px}
   .live-bar{display:flex;align-items:center;gap:12px}
   .dot{width:8px;height:8px;border-radius:50%;background:#27ae60;animation:pulse 2s infinite}
@@ -69,7 +69,17 @@
   .fixos-card .prec-header{background:#252836;padding:14px 18px;font-size:.9rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.5px}
   .loading{text-align:center;color:#555;padding:24px;font-size:.9rem}
   @media(max-width:900px){.charts-grid,.two-col,.periodo-grid,.prec-grid{grid-template-columns:1fr}}
+  .wpp-icon{display:inline-block;width:17px;height:17px;vertical-align:middle;margin-right:4px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%2325D366'/%3E%3Cpath fill='%23fff' d='M22.5 9.5A9.1 9.1 0 0 0 16 7a9 9 0 0 0-7.8 13.5L7 25l4.6-1.2A9 9 0 0 0 25 16a9.1 9.1 0 0 0-2.5-6.5zm-6.5 13.9a7.5 7.5 0 0 1-3.8-1l-.3-.2-2.7.7.7-2.7-.2-.3A7.5 7.5 0 1 1 16 23.4zm4.1-5.6c-.2-.1-1.3-.6-1.5-.7s-.4-.1-.5.1l-.6.8c-.1.2-.2.2-.4.1a6 6 0 0 1-1.8-1.1 6.7 6.7 0 0 1-1.2-1.5c-.1-.2 0-.4.1-.5l.3-.4.2-.4v-.4l-.7-1.6c-.2-.4-.4-.4-.5-.4h-.5a.9.9 0 0 0-.7.3 2.8 2.8 0 0 0-.9 2.1 4.9 4.9 0 0 0 1 2.6 11.2 11.2 0 0 0 4.3 3.8c.6.3 1.1.4 1.5.5a3.6 3.6 0 0 0 1.6.1 2.6 2.6 0 0 0 1.7-1.2 2.1 2.1 0 0 0 .1-1.2c-.1-.1-.3-.2-.5-.3z'/%3E%3C/svg%3E") center/contain no-repeat}
 </style>
+<script>
+(function(){
+  var t=localStorage.getItem('pm_token'), exp=localStorage.getItem('pm_token_exp');
+  if(!t||!exp||Date.now()>=parseInt(exp)){
+    localStorage.removeItem('pm_token'); localStorage.removeItem('pm_token_exp');
+    window.location.replace('/login?next='+encodeURIComponent(window.location.pathname));
+  }
+})();
+</script>
 </head>
 <body>
 
@@ -85,20 +95,74 @@
   </div>
 </div>
 
-<div style="background:#13151f;border-bottom:1px solid #2d3047;padding:0 32px;display:flex;gap:0">
-  <div id="tab-dashboard" onclick="switchTab('dashboard')" style="padding:14px 22px;cursor:pointer;font-size:.85rem;font-weight:600;color:#3b82f6;border-bottom:2px solid #3b82f6;text-transform:uppercase;letter-spacing:.5px">
+<!-- NAV DESKTOP (topo) -->
+<div id="nav-desktop" style="background:#13151f;border-bottom:1px solid #2d3047;padding:0 32px;display:flex;gap:0">
+  <div id="tab-dashboard" onclick="switchTab('dashboard')" style="padding:14px 22px;cursor:pointer;font-size:.85rem;font-weight:600;color:#3b82f6;border-bottom:2px solid #3b82f6;text-transform:uppercase;letter-spacing:.5px;transition:.2s">
     📊 Dashboard
   </div>
   <div id="tab-creators" onclick="switchTab('creators')" style="padding:14px 22px;cursor:pointer;font-size:.85rem;font-weight:600;color:#888;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.5px;transition:.2s">
     🎭 Creators
   </div>
   <div id="tab-fechamento" onclick="switchTab('fechamento')" style="padding:14px 22px;cursor:pointer;font-size:.85rem;font-weight:600;color:#888;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.5px;transition:.2s">
-    📋 Fechamento Mensal
+    💰 Financeiro
   </div>
   <div id="tab-pedidos" onclick="switchTab('pedidos')" style="padding:14px 22px;cursor:pointer;font-size:.85rem;font-weight:600;color:#888;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.5px;transition:.2s">
     📦 Pedidos
   </div>
+  <div id="tab-expedicao" onclick="switchTab('expedicao')" style="padding:14px 22px;cursor:pointer;font-size:.85rem;font-weight:600;color:#888;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.5px;transition:.2s">
+    🚚 Expedição
+  </div>
+  <div id="tab-estoque" onclick="switchTab('estoque')" style="padding:14px 22px;cursor:pointer;font-size:.85rem;font-weight:600;color:#888;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.5px;transition:.2s">
+    🏪 Estoque
+  </div>
+  <div id="tab-marketing" onclick="switchTab('marketing')" style="padding:14px 22px;cursor:pointer;font-size:.85rem;font-weight:600;color:#888;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.5px;transition:.2s">
+    📣 Marketing
+  </div>
 </div>
+
+<!-- NAV MOBILE (barra inferior fixa) -->
+<nav id="nav-mobile" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#13151f;border-bottom:1px solid #2d3047;padding:0">
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);height:62px">
+    <div id="mob-dashboard" onclick="switchTab('dashboard')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border-bottom:2px solid #3b82f6;background:#13151f;transition:.15s">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span style="font-size:.55rem;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.3px">Dashboard</span>
+    </div>
+    <div id="mob-creators" onclick="switchTab('creators')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border-bottom:2px solid transparent;transition:.15s">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span style="font-size:.55rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.3px">Creators</span>
+    </div>
+    <div id="mob-fechamento" onclick="switchTab('fechamento')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border-bottom:2px solid transparent;transition:.15s">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span style="font-size:.55rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.3px">Financeiro</span>
+    </div>
+    <div id="mob-pedidos" onclick="switchTab('pedidos')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border-bottom:2px solid transparent;transition:.15s">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <span style="font-size:.55rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.3px">Pedidos</span>
+    </div>
+    <div id="mob-expedicao" onclick="switchTab('expedicao')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border-bottom:2px solid transparent;transition:.15s">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      <span style="font-size:.55rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.3px">Expedição</span>
+    </div>
+    <div id="mob-estoque" onclick="switchTab('estoque')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border-bottom:2px solid transparent;transition:.15s">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span style="font-size:.55rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.3px">Estoque</span>
+    </div>
+    <div id="mob-marketing" onclick="switchTab('marketing')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border-bottom:2px solid transparent;transition:.15s">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span style="font-size:.55rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.3px">Marketing</span>
+    </div>
+  </div>
+</nav>
+
+<style>
+@media (max-width: 768px) {
+  #nav-desktop { display: none !important; }
+  #nav-mobile  { display: block !important; }
+  .container   { padding: 12px !important; }
+  .header      { padding-top: 70px !important; }
+  body         { padding-top: 0; }
+}
+</style>
 
 <div id="panel-dashboard">
 <div class="container">
@@ -134,250 +198,47 @@
     </tr></thead><tbody id="dre-body"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody></table>
   </div>
 
+  <!-- ESPELHO LANÇAMENTOS (mirror compacto) -->
   <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
-    <span>Lançamentos</span>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span style="font-size:.75rem;color:#666">Mês:</span>
-      <select id="sel-mes-lanc" onchange="trocarMesLancamentos(this.value)" style="background:#1a1d2e;border:1px solid #3d4060;color:#e0e0e0;padding:5px 10px;border-radius:6px;font-size:.8rem;cursor:pointer">
-        <option value="">carregando...</option>
-      </select>
-    </div>
+    <span>Lançamentos Recentes</span>
+    <button onclick="switchTab('fechamento')" style="background:#6c63ff22;color:#a78bfa;border:1px solid #6c63ff44;padding:5px 14px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer">💰 Ver tudo no Financeiro →</button>
   </div>
-  <div class="table-box" style="padding:20px 20px 10px">
-    <!-- Linha 1: Quem lança + Data (destaque) -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-      <div style="background:#252836;border:2px solid #6c63ff;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:14px">
-        <span style="font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Quem está lançando?</span>
-        <div style="display:flex;gap:8px;flex:1">
-          <button type="button" id="btn-caio" onclick="selecionarPor('Caio')" style="flex:1;padding:7px;border-radius:6px;border:2px solid #6c63ff;background:#6c63ff;color:#fff;font-weight:700;cursor:pointer;font-size:.9rem">Caio</button>
-          <button type="button" id="btn-felipe" onclick="selecionarPor('Felipe')" style="flex:1;padding:7px;border-radius:6px;border:2px solid #3d4060;background:transparent;color:#aaa;font-weight:600;cursor:pointer;font-size:.9rem">Felipe</button>
-        </div>
-      </div>
-      <div style="background:#252836;border:2px solid #3d4060;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:14px">
-        <span style="font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Data do lançamento</span>
-        <input type="date" id="l-data" style="flex:1;background:transparent;border:none;color:#e0e0e0;font-size:1rem;font-weight:600;outline:none">
-      </div>
-    </div>
-    <!-- Linha 2: demais campos -->
-    <form id="lanc-form" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:18px">
-      <input type="hidden" id="l-por" value="Caio">
-      <div>
-        <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Categoria</label>
-        <select id="l-cat" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
-          <option>Tráfego Pago</option>
-          <option>Logística</option>
-          <option>Despesas Operacionais</option>
-          <option>Marketing (Conteúdo)</option>
-          <option>Produto</option>
-          <option>Eventos</option>
-          <option>Ferramenta</option>
-        </select>
-      </div>
-      <div>
-        <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Descrição</label>
-        <input type="text" id="l-desc" placeholder="Ex: Compra de embalagens" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
-      </div>
-      <div>
-        <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Valor (R$)</label>
-        <input type="number" id="l-valor" step="0.01" min="0" placeholder="0,00" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
-      </div>
-      <div>
-        <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Tipo</label>
-        <select id="l-tipo" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
-          <option value="Despesa">Despesa</option><option value="Entrada">Entrada</option><option value="Receita">Receita</option>
-        </select>
-      </div>
-      <div style="display:flex;align-items:flex-end">
-        <button type="submit" id="lanc-btn" style="width:100%;background:#6c63ff;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:.85rem;font-weight:600;cursor:pointer">+ Lançar</button>
-      </div>
-    </form>
-    <table><thead><tr>
-      <th>Data</th><th>Por</th><th>Categoria</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Lançado em</th><th></th>
-    </tr></thead><tbody id="lanc-body"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
-    <tfoot id="lanc-foot"></tfoot></table>
-
-  <!-- Modal exclusão -->
-  <div id="modal-excluir" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center">
-    <div style="background:#1e2030;border:1px solid #3d4060;border-radius:12px;padding:28px 32px;max-width:420px;width:90%">
-      <div style="font-size:1.1rem;font-weight:700;margin-bottom:6px">🗑️ Excluir lançamento</div>
-      <div id="modal-desc" style="color:#aaa;font-size:.88rem;margin-bottom:18px"></div>
-      <div style="margin-bottom:16px">
-        <label style="font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Quem está excluindo?</label>
-        <select id="modal-por" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:8px 10px;font-size:.9rem">
-          <option>Caio</option><option>Felipe</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button onclick="fecharModal()" style="background:#2a2d3e;color:#ccc;border:1px solid #3d4060;border-radius:6px;padding:8px 18px;cursor:pointer">Cancelar</button>
-        <button onclick="confirmarExclusao()" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-weight:600;cursor:pointer">Excluir</button>
-      </div>
-    </div>
-  </div>
+  <div id="lanc-mirror" class="table-box" style="padding:14px 16px">
+    <div style="color:#555;font-size:.82rem;text-align:center;padding:10px">Carregando...</div>
   </div>
 
-  <div class="section-title">Estrutura de Custos</div>
-  <div class="two-col">
-    <div class="table-box" style="padding:20px 20px 10px">
-      <form id="fixos-form" style="display:grid;grid-template-columns:1fr 200px 160px 140px 110px;gap:10px;margin-bottom:18px;align-items:end">
-        <div>
-          <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Nome do custo</label>
-          <input type="text" id="f-nome" placeholder="Ex: Contador, Embalagens..." style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
-        </div>
-        <div>
-          <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Categoria DRE</label>
-          <select id="f-cat" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
-            <option>Pessoal</option>
-            <option>Infraestrutura</option>
-            <option>Plataforma</option>
-            <option>Marketing</option>
-            <option>Logística</option>
-            <option>Administrativo</option>
-            <option>Tecnologia</option>
-            <option>Outros</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Valor mensal (R$)</label>
-          <input type="number" id="f-valor" step="0.01" min="0" placeholder="0,00" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
-        </div>
-        <div>
-          <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Rateio</label>
-          <div id="f-rateio" style="color:#aaa;font-size:.85rem;padding:8px 10px;background:#1a1d2e;border-radius:6px;border:1px solid #2d3047">—/dia</div>
-        </div>
-        <div style="display:flex;align-items:flex-end">
-          <button type="submit" id="fixos-btn" style="width:100%;background:#27ae60;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:.85rem;font-weight:600;cursor:pointer">+ Adicionar</button>
-        </div>
-      </form>
-      <table>
-        <thead><tr>
-          <th>Item</th>
-          <th>Categoria DRE</th>
-          <th>Valor/mês</th>
-          <th>Rateio diário</th>
-          <th style="width:60px"></th>
-        </tr></thead>
-        <tbody id="fixos-body"></tbody>
-      </table>
-    </div>
-    <div class="table-box">
-      <table>
-        <thead><tr><th>Kit</th><th>Preço</th><th>CMV+Mixer</th><th>Margem contrib.</th><th>%</th></tr></thead>
-        <tbody id="kits-resumo-body"></tbody>
-      </table>
-    </div>
+  <!-- ESPELHO ESTRUTURA CUSTOS -->
+  <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;margin-top:24px">
+    <span>Custos Fixos do Mês</span>
+    <button onclick="switchTab('fechamento')" style="background:#27ae6022;color:#4ade80;border:1px solid #27ae6044;padding:5px 14px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer">⚙️ Gerenciar →</button>
+  </div>
+  <div id="fixos-mirror" class="table-box" style="padding:14px 16px">
+    <div style="color:#555;font-size:.82rem;text-align:center;padding:10px">Carregando...</div>
   </div>
 
-  <div class="section-title" style="margin-top:28px">Custo por Kit — editável em tempo real</div>
-  <p style="color:#888;font-size:.82rem;margin-bottom:20px">Altere qualquer valor. A margem e o ROAS ideal são recalculados automaticamente.</p>
-  <div class="prec-grid" id="prec-grid">
-    
-    <div class="prec-card">
-      <div class="prec-header">1 Pacote — <span id="k1_preco_label">R$157.00</span></div>
-      <div class="prec-row"><span class="prec-label">Preço de venda</span>
-        <div><input type="number" id="k1_preco" value="157.00" step="1" onchange="calc()"> <span class="prec-pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">CMV produto</span>
-        <div><input type="number" id="k1_cmv" value="37.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k1_cmv_pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">Brinde / Mixer</span>
-        <div><input type="number" id="k1_mixer" value="0.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k1_mixer_pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">Frete médio</span>
-        <div><input type="number" id="k1_frete" value="20.00" step="1" onchange="calc()"> <span class="prec-pct" id="k1_frete_pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">Imposto (%)</span>
-        <div><input type="number" id="k1_imposto" value="10.0" step="0.5" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
-      <div class="prec-row"><span class="prec-label">Gateway / Appmax (%)</span>
-        <div><input type="number" id="k1_gateway" value="4.99" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
-      <div class="prec-row"><span class="prec-label">Yampi (%)</span>
-        <div><input type="number" id="k1_yampi" value="2.5" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
-      <div class="prec-total">
-        <div class="t-row"><span class="t-label">Total custos variáveis</span><span class="t-val neg" id="k1_var_total">—</span></div>
-        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val" id="k1_var_pct" style="color:#e67e22">—</span></div>
-        <div class="t-row" style="margin-top:6px"><span class="t-label">Margem contribuição</span><span class="t-val pos" id="k1_mc">—</span></div>
-        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val pos" id="k1_mc_pct">—</span></div>
-        <div class="t-row"><span class="t-label">ROAS ideal (13% lucro)</span><span class="t-val" id="k1_roas13" style="color:#6c63ff">—</span></div>
-        <div class="t-row"><span class="t-label">CPA alvo (13% lucro)</span><span class="t-val" id="k1_cpa13" style="color:#3498db">—</span></div>
-      </div>
-    </div>
-    <div class="prec-card">
-      <div class="prec-header">2 Pacotes (Power Duo) — <span id="k2_preco_label">R$274.00</span></div>
-      <div class="prec-row"><span class="prec-label">Preço de venda</span>
-        <div><input type="number" id="k2_preco" value="274.00" step="1" onchange="calc()"> <span class="prec-pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">CMV produto</span>
-        <div><input type="number" id="k2_cmv" value="74.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k2_cmv_pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">Brinde / Mixer</span>
-        <div><input type="number" id="k2_mixer" value="12.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k2_mixer_pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">Frete médio</span>
-        <div><input type="number" id="k2_frete" value="20.00" step="1" onchange="calc()"> <span class="prec-pct" id="k2_frete_pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">Imposto (%)</span>
-        <div><input type="number" id="k2_imposto" value="10.0" step="0.5" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
-      <div class="prec-row"><span class="prec-label">Gateway / Appmax (%)</span>
-        <div><input type="number" id="k2_gateway" value="4.99" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
-      <div class="prec-row"><span class="prec-label">Yampi (%)</span>
-        <div><input type="number" id="k2_yampi" value="2.5" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
-      <div class="prec-total">
-        <div class="t-row"><span class="t-label">Total custos variáveis</span><span class="t-val neg" id="k2_var_total">—</span></div>
-        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val" id="k2_var_pct" style="color:#e67e22">—</span></div>
-        <div class="t-row" style="margin-top:6px"><span class="t-label">Margem contribuição</span><span class="t-val pos" id="k2_mc">—</span></div>
-        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val pos" id="k2_mc_pct">—</span></div>
-        <div class="t-row"><span class="t-label">ROAS ideal (13% lucro)</span><span class="t-val" id="k2_roas13" style="color:#6c63ff">—</span></div>
-        <div class="t-row"><span class="t-label">CPA alvo (13% lucro)</span><span class="t-val" id="k2_cpa13" style="color:#3498db">—</span></div>
-      </div>
-    </div>
-    <div class="prec-card">
-      <div class="prec-header">3 Pacotes — <span id="k3_preco_label">R$381.00</span></div>
-      <div class="prec-row"><span class="prec-label">Preço de venda</span>
-        <div><input type="number" id="k3_preco" value="381.00" step="1" onchange="calc()"> <span class="prec-pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">CMV produto</span>
-        <div><input type="number" id="k3_cmv" value="111.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k3_cmv_pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">Brinde / Mixer</span>
-        <div><input type="number" id="k3_mixer" value="12.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k3_mixer_pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">Frete médio</span>
-        <div><input type="number" id="k3_frete" value="20.00" step="1" onchange="calc()"> <span class="prec-pct" id="k3_frete_pct"></span></div></div>
-      <div class="prec-row"><span class="prec-label">Imposto (%)</span>
-        <div><input type="number" id="k3_imposto" value="10.0" step="0.5" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
-      <div class="prec-row"><span class="prec-label">Gateway / Appmax (%)</span>
-        <div><input type="number" id="k3_gateway" value="4.99" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
-      <div class="prec-row"><span class="prec-label">Yampi (%)</span>
-        <div><input type="number" id="k3_yampi" value="2.5" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
-      <div class="prec-total">
-        <div class="t-row"><span class="t-label">Total custos variáveis</span><span class="t-val neg" id="k3_var_total">—</span></div>
-        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val" id="k3_var_pct" style="color:#e67e22">—</span></div>
-        <div class="t-row" style="margin-top:6px"><span class="t-label">Margem contribuição</span><span class="t-val pos" id="k3_mc">—</span></div>
-        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val pos" id="k3_mc_pct">—</span></div>
-        <div class="t-row"><span class="t-label">ROAS ideal (13% lucro)</span><span class="t-val" id="k3_roas13" style="color:#6c63ff">—</span></div>
-        <div class="t-row"><span class="t-label">CPA alvo (13% lucro)</span><span class="t-val" id="k3_cpa13" style="color:#3498db">—</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="fixos-card">
-    <div class="prec-header">Fixos — editável</div>
-    <div id="fixos-prec-rows"></div>
-    <div class="prec-total">
-      <div class="t-row"><span class="t-label">Total fixos/mês</span><span class="t-val" id="fixos_mes" style="color:#e67e22">—</span></div>
-      <div class="t-row"><span class="t-label">Rateio diário</span><span class="t-val" id="fixos_dia" style="color:#888">—</span></div>
-    </div>
-  </div>
-
-  <div class="section-title">ROAS Ideal por Kit e Meta de Lucro</div>
-  <div class="roas-box">
-    <h3>Pedidos por dia: <select id="peds_dia" onchange="calc()" style="background:#0f1117;color:#fff;border:1px solid #3d4060;border-radius:4px;padding:3px 8px">
-      <option value="1">1 pedido/dia</option>
-      <option value="2">2 pedidos/dia</option>
-      <option value="3" selected>3 pedidos/dia</option>
-      <option value="5">5 pedidos/dia</option>
-      <option value="7">7 pedidos/dia</option>
-    </select></h3>
-    <table class="roas-table" style="margin-top:12px">
-      <thead><tr>
-        <th style="text-align:left">Kit</th>
-        <th>Meta 10%</th><th>Meta 13%</th><th>Meta 15%</th><th>CPA máx. (13%)</th>
-      </tr></thead>
-      <tbody id="roas-tbody"></tbody>
-    </table>
-  </div>
 
 </div>
 
 <script>
+// Captura qualquer erro JS e exibe no header para debug
+window.onerror = function(msg, src, line, col, err) {
+  var el = document.getElementById('ts');
+  if(el) el.textContent = '🔴 ERRO linha ' + line + ': ' + msg;
+  return true;
+};
+
+// Interceptor global: adiciona ngrok-skip-browser-warning em todos os fetch internos
+(function(){
+  const _orig = window.fetch.bind(window);
+  window.fetch = function(url, opts) {
+    if (typeof url === 'string' && (url.startsWith('/') || url.includes('localhost'))) {
+      opts = opts || {};
+      opts.headers = Object.assign({'ngrok-skip-browser-warning': '1'}, opts.headers || {});
+    }
+    return _orig(url, opts);
+  };
+})();
+
 const API = '/api/data';
 const KIT_IDS = ["k1", "k2", "k3"];
 const BRL = v => 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -563,6 +424,8 @@ function render(d) {
   // Lançamentos — popula meses e carrega o atual
   popularMesesLancamentos();
   renderLancamentos(d.lancamentos || []);
+  renderMirrorLancamentos(d.lancamentos || []);
+  renderMirrorFixos(d.fixed_costs || {}, d.fixed_total || 0);
 
   // Custos fixos (tabela com add/delete)
   const fc = d.fixed_costs || {};
@@ -707,6 +570,14 @@ function confirmarExclusao() {
 const MESES_PT = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+function carregarLancamentos() {
+  popularMesesLancamentos();
+  fetch('/api/lancamentos')
+    .then(r => r.json())
+    .then(data => renderLancamentos(Array.isArray(data) ? data : (data.itens || [])))
+    .catch(() => {});
+}
+
 function popularMesesLancamentos() {
   fetch('/api/lancamentos')
     .then(r=>r.json())
@@ -720,6 +591,58 @@ function popularMesesLancamentos() {
         return `<option value="${m}">${label}</option>`;
       }).join('');
     }).catch(()=>{});
+}
+
+function renderMirrorLancamentos(items) {
+  var el = document.getElementById('lanc-mirror');
+  if (!el) return;
+  var total_despesa = 0, total_entrada = 0;
+  items.forEach(function(l){ if(l.tipo==='Despesa') total_despesa += parseFloat(l.valor||0); else total_entrada += parseFloat(l.valor||0); });
+  var ultimos = items.slice(-6).reverse();
+  var rows = ultimos.map(function(l){
+    var cor = l.tipo === 'Despesa' ? '#f87171' : '#4ade80';
+    var sinal = l.tipo === 'Despesa' ? '-' : '+';
+    return '<tr>'
+      +'<td style="padding:7px 8px;color:#9ca3af;font-size:.75rem">'+l.data+'</td>'
+      +'<td style="padding:7px 8px;color:#e0e0e0;font-size:.78rem">'+l.descricao+'</td>'
+      +'<td style="padding:7px 8px;color:#9ca3af;font-size:.75rem">'+l.categoria+'</td>'
+      +'<td style="padding:7px 8px;text-align:right;font-weight:700;color:'+cor+';font-size:.8rem">'+sinal+' R$'+parseFloat(l.valor||0).toFixed(2)+'</td>'
+      +'</tr>';
+  }).join('');
+  el.innerHTML = '<div style="display:flex;gap:20px;margin-bottom:12px;flex-wrap:wrap">'
+    +'<span style="font-size:.78rem;color:#f87171">▼ Despesas: <strong>R$'+total_despesa.toFixed(2)+'</strong></span>'
+    +'<span style="font-size:.78rem;color:#4ade80">▲ Entradas: <strong>R$'+total_entrada.toFixed(2)+'</strong></span>'
+    +'<span style="font-size:.78rem;color:#'+(total_entrada-total_despesa>=0?'4ade80':'f87171')+'">= Saldo: <strong>R$'+(total_entrada-total_despesa).toFixed(2)+'</strong></span>'
+    +'</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:.8rem">'
+    +'<thead><tr style="border-bottom:1px solid #2a2d3e">'
+    +'<th style="padding:6px 8px;color:#4b5563;font-size:.65rem;font-weight:700;text-transform:uppercase;text-align:left">Data</th>'
+    +'<th style="padding:6px 8px;color:#4b5563;font-size:.65rem;font-weight:700;text-transform:uppercase;text-align:left">Descrição</th>'
+    +'<th style="padding:6px 8px;color:#4b5563;font-size:.65rem;font-weight:700;text-transform:uppercase;text-align:left">Categoria</th>'
+    +'<th style="padding:6px 8px;color:#4b5563;font-size:.65rem;font-weight:700;text-transform:uppercase;text-align:right">Valor</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table>'
+    +(items.length > 6 ? '<div style="text-align:center;padding:8px;color:#6b7280;font-size:.73rem">+'+(items.length-6)+' lançamentos — veja tudo em Financeiro</div>' : '');
+}
+
+function renderMirrorFixos(fc, ft) {
+  var el = document.getElementById('fixos-mirror');
+  if (!el) return;
+  if (!Object.keys(fc).length) { el.innerHTML = '<div style="color:#555;font-size:.82rem;padding:8px">Nenhum custo fixo cadastrado.</div>'; return; }
+  var rows = Object.entries(fc).map(function(e){
+    var nome = e[0]; var v = typeof e[1]==='object' ? e[1].valor : e[1];
+    return '<tr>'
+      +'<td style="padding:7px 8px;color:#e0e0e0;font-size:.78rem">'+nome+'</td>'
+      +'<td style="padding:7px 8px;text-align:right;color:#f59e0b;font-weight:700;font-size:.8rem">R$'+v.toFixed(2)+'</td>'
+      +'<td style="padding:7px 8px;text-align:right;color:#6b7280;font-size:.73rem">R$'+(v/30).toFixed(2)+'/dia</td>'
+      +'</tr>';
+  }).join('');
+  el.innerHTML = '<table style="width:100%;border-collapse:collapse">'
+    +'<tbody>'+rows+'</tbody>'
+    +'<tfoot><tr style="border-top:1px solid #2a2d3e;font-weight:700">'
+    +'<td style="padding:8px;color:#f59e0b;font-size:.8rem">TOTAL</td>'
+    +'<td style="padding:8px;text-align:right;color:#f59e0b">R$'+ft.toFixed(2)+'</td>'
+    +'<td style="padding:8px;text-align:right;color:#6b7280;font-size:.73rem">R$'+(ft/30).toFixed(2)+'/dia</td>'
+    +'</tr></tfoot></table>';
 }
 
 function trocarMesLancamentos(mes) {
@@ -822,8 +745,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if(ld) ld.value = today;
 });
 
-// Lançamentos — submit
-document.getElementById('lanc-form').addEventListener('submit', e => {
+// Lançamentos — submit (dentro de DOMContentLoaded pois o form está em panel-fechamento)
+document.addEventListener('DOMContentLoaded', function() {
+  var lancForm = document.getElementById('lanc-form');
+  if(lancForm) lancForm.addEventListener('submit', function lancSubmit(e) {
   e.preventDefault();
   const btn   = document.getElementById('lanc-btn');
   const data  = document.getElementById('l-data').value;
@@ -848,16 +773,18 @@ document.getElementById('lanc-form').addEventListener('submit', e => {
     loadData();
   })
   .catch(() => { btn.textContent = '+ Lançar'; btn.disabled = false; alert('Erro ao salvar.'); });
-});
+  }); // fim lanc-form listener
 
-// Preview de rateio no formulário
-document.getElementById('f-valor').addEventListener('input', function() {
-  const v = parseFloat(this.value) || 0;
-  document.getElementById('f-rateio').textContent = v > 0 ? BRL(v/30)+'/dia' : '—/dia';
-});
+  // Preview de rateio no formulário
+  var fValorEl = document.getElementById('f-valor');
+  if(fValorEl) fValorEl.addEventListener('input', function() {
+    const v = parseFloat(this.value) || 0;
+    document.getElementById('f-rateio').textContent = v > 0 ? BRL(v/30)+'/dia' : '—/dia';
+  });
 
-// Custos Fixos — adicionar
-document.getElementById('fixos-form').addEventListener('submit', e => {
+  // Custos Fixos — adicionar
+  var fixosFormEl = document.getElementById('fixos-form');
+  if(fixosFormEl) fixosFormEl.addEventListener('submit', function(e) {
   e.preventDefault();
   const btn       = document.getElementById('fixos-btn');
   const nome      = document.getElementById('f-nome').value.trim();
@@ -876,7 +803,8 @@ document.getElementById('fixos-form').addEventListener('submit', e => {
     setTimeout(() => { btn.textContent = '+ Adicionar'; btn.disabled = false; }, 1500);
     loadData();
   }).catch(() => { btn.textContent = '+ Adicionar'; btn.disabled = false; });
-});
+  }); // fim fixos-form listener
+}); // fim DOMContentLoaded
 
 // Custos Fixos — deletar
 function deleteFixo(nome) {
@@ -899,30 +827,48 @@ setInterval(() => {
 function loadData() {
   fetch(API)
     .then(r => r.json())
-    .then(d => { render(d); cd = 60; })
-    .catch(() => {
-      document.getElementById('ts').textContent = '⚠️ Servidor offline — rode: python3 financeiro/server.py';
+    .then(d => {
+      try { render(d); cd = 60; }
+      catch(e) {
+        document.getElementById('ts').textContent = '⚠️ Erro JS: ' + e.message;
+        console.error('render error:', e);
+      }
+    })
+    .catch(e => {
+      document.getElementById('ts').textContent = '⚠️ Fetch falhou: ' + (e&&e.message||'sem resposta');
+      console.error('fetch error:', e);
     });
 }
 
 loadData();
 
 function switchTab(tab) {
-  var tabs = ['dashboard', 'creators', 'fechamento', 'pedidos'];
-  if (tab === 'fechamento') carregarFechamentos();
+  var tabs = ['dashboard', 'creators', 'fechamento', 'pedidos', 'expedicao', 'estoque', 'marketing'];
+  if (tab === 'fechamento') { carregarFechamentos(); carregarLancamentos(); }
   if (tab === 'pedidos') carregarPedidos();
+  if (tab === 'expedicao') carregarExpedicao();
+  if (tab === 'estoque') carregarEstoque();
   tabs.forEach(function(t) {
-    var tabEl = document.getElementById('tab-' + t);
+    var tabEl   = document.getElementById('tab-' + t);
+    var mobEl   = document.getElementById('mob-' + t);
     var panelEl = document.getElementById('panel-' + t);
-    if (t === tab) {
-      tabEl.style.color = '#3b82f6';
-      tabEl.style.borderBottomColor = '#3b82f6';
-      panelEl.style.display = 'block';
-    } else {
-      tabEl.style.color = '#888';
-      tabEl.style.borderBottomColor = 'transparent';
-      panelEl.style.display = 'none';
+    var ativo   = t === tab;
+    // Desktop tab
+    if (tabEl) {
+      tabEl.style.color = ativo ? '#3b82f6' : '#888';
+      tabEl.style.borderBottomColor = ativo ? '#3b82f6' : 'transparent';
     }
+    // Mobile tab
+    if (mobEl) {
+      var svg   = mobEl.querySelector('svg');
+      var label = mobEl.querySelector('span');
+      mobEl.style.borderBottomColor = ativo ? '#3b82f6' : 'transparent';
+      mobEl.style.background     = ativo ? '#0d1526' : '#13151f';
+      if (svg)   svg.setAttribute('stroke', ativo ? '#3b82f6' : '#6b7280');
+      if (label) { label.style.color = ativo ? '#3b82f6' : '#6b7280'; }
+    }
+    // Painel
+    if (panelEl) panelEl.style.display = ativo ? 'block' : 'none';
   });
 }
 </script>
@@ -939,12 +885,207 @@ function switchTab(tab) {
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- PAINEL FECHAMENTO MENSAL                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAINEL FINANCEIRO                                                    -->
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <div id="panel-fechamento" style="display:none">
 <div class="container">
 
-  <div style="display:flex;justify-content:space-between;align-items:center;margin:24px 0 20px">
+  <!-- ── LANÇAMENTOS ─────────────────────────────────────────────────── -->
+  <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;margin-top:24px">
+    <span>💰 Lançamentos</span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:.75rem;color:#666">Mês:</span>
+      <select id="sel-mes-lanc" onchange="trocarMesLancamentos(this.value)" style="background:#1a1d2e;border:1px solid #3d4060;color:#e0e0e0;padding:5px 10px;border-radius:6px;font-size:.8rem;cursor:pointer">
+        <option value="">carregando...</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-box" style="padding:20px 20px 10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div style="background:#252836;border:2px solid #6c63ff;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:14px">
+        <span style="font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Quem está lançando?</span>
+        <div style="display:flex;gap:8px;flex:1">
+          <button type="button" id="btn-caio" onclick="selecionarPor('Caio')" style="flex:1;padding:7px;border-radius:6px;border:2px solid #6c63ff;background:#6c63ff;color:#fff;font-weight:700;cursor:pointer;font-size:.9rem">Caio</button>
+          <button type="button" id="btn-felipe" onclick="selecionarPor('Felipe')" style="flex:1;padding:7px;border-radius:6px;border:2px solid #3d4060;background:transparent;color:#aaa;font-weight:600;cursor:pointer;font-size:.9rem">Felipe</button>
+        </div>
+      </div>
+      <div style="background:#252836;border:2px solid #3d4060;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:14px">
+        <span style="font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Data do lançamento</span>
+        <input type="date" id="l-data" style="flex:1;background:transparent;border:none;color:#e0e0e0;font-size:1rem;font-weight:600;outline:none">
+      </div>
+    </div>
+    <form id="lanc-form" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:18px">
+      <input type="hidden" id="l-por" value="Caio">
+      <div>
+        <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Categoria</label>
+        <select id="l-cat" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
+          <option>Tráfego Pago</option><option>Logística</option><option>Despesas Operacionais</option>
+          <option>Marketing (Conteúdo)</option><option>Produto</option><option>Eventos</option><option>Ferramenta</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Descrição</label>
+        <input type="text" id="l-desc" placeholder="Ex: Compra de embalagens" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Valor (R$)</label>
+        <input type="number" id="l-valor" step="0.01" min="0" placeholder="0,00" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Tipo</label>
+        <select id="l-tipo" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
+          <option value="Despesa">Despesa</option><option value="Entrada">Entrada</option><option value="Receita">Receita</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button type="submit" id="lanc-btn" style="width:100%;background:#6c63ff;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:.85rem;font-weight:600;cursor:pointer">+ Lançar</button>
+      </div>
+    </form>
+    <table><thead><tr>
+      <th>Data</th><th>Por</th><th>Categoria</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Lançado em</th><th></th>
+    </tr></thead><tbody id="lanc-body"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
+    <tfoot id="lanc-foot"></tfoot></table>
+  </div>
+
+  <!-- Modal exclusão -->
+  <div id="modal-excluir" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#1e2030;border:1px solid #3d4060;border-radius:12px;padding:28px 32px;max-width:420px;width:90%">
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:6px">🗑️ Excluir lançamento</div>
+      <div id="modal-desc" style="color:#aaa;font-size:.88rem;margin-bottom:18px"></div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Quem está excluindo?</label>
+        <select id="modal-por" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:8px 10px;font-size:.9rem">
+          <option>Caio</option><option>Felipe</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="fecharModal()" style="background:#2a2d3e;color:#ccc;border:1px solid #3d4060;border-radius:6px;padding:8px 18px;cursor:pointer">Cancelar</button>
+        <button onclick="confirmarExclusao()" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-weight:600;cursor:pointer">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ESTRUTURA DE CUSTOS ─────────────────────────────────────────── -->
+  <div class="section-title">⚙️ Estrutura de Custos Fixos</div>
+  <div class="two-col">
+    <div class="table-box" style="padding:20px 20px 10px">
+      <form id="fixos-form" style="display:grid;grid-template-columns:1fr 200px 160px 140px 110px;gap:10px;margin-bottom:18px;align-items:end">
+        <div>
+          <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Nome do custo</label>
+          <input type="text" id="f-nome" placeholder="Ex: Contador, Embalagens..." style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
+        </div>
+        <div>
+          <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Categoria DRE</label>
+          <select id="f-cat" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
+            <option>Pessoal</option><option>Infraestrutura</option><option>Plataforma</option><option>Marketing</option>
+            <option>Logística</option><option>Administrativo</option><option>Tecnologia</option><option>Outros</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Valor mensal (R$)</label>
+          <input type="number" id="f-valor" step="0.01" min="0" placeholder="0,00" style="width:100%;background:#252836;border:1px solid #3d4060;border-radius:6px;color:#e0e0e0;padding:7px 10px;font-size:.85rem">
+        </div>
+        <div>
+          <label style="font-size:.72rem;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Rateio</label>
+          <div id="f-rateio" style="color:#aaa;font-size:.85rem;padding:8px 10px;background:#1a1d2e;border-radius:6px;border:1px solid #2d3047">—/dia</div>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button type="submit" id="fixos-btn" style="width:100%;background:#27ae60;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:.85rem;font-weight:600;cursor:pointer">+ Adicionar</button>
+        </div>
+      </form>
+      <table><thead><tr><th>Item</th><th>Categoria DRE</th><th>Valor/mês</th><th>Rateio diário</th><th style="width:60px"></th></tr></thead>
+        <tbody id="fixos-body"></tbody>
+      </table>
+    </div>
+    <div class="table-box">
+      <table><thead><tr><th>Kit</th><th>Preço</th><th>CMV+Mixer</th><th>Margem contrib.</th><th>%</th></tr></thead>
+        <tbody id="kits-resumo-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── CUSTO POR KIT ───────────────────────────────────────────────── -->
+  <div class="section-title" style="margin-top:28px">📦 Custo por Kit — editável em tempo real</div>
+  <p style="color:#888;font-size:.82rem;margin-bottom:20px">Altere qualquer valor. A margem e o ROAS ideal são recalculados automaticamente.</p>
+  <div class="prec-grid" id="prec-grid">
+    <div class="prec-card">
+      <div class="prec-header">1 Pacote — <span id="k1_preco_label">R$157.00</span></div>
+      <div class="prec-row"><span class="prec-label">Preço de venda</span><div><input type="number" id="k1_preco" value="157.00" step="1" onchange="calc()"> <span class="prec-pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">CMV produto</span><div><input type="number" id="k1_cmv" value="37.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k1_cmv_pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">Brinde / Mixer</span><div><input type="number" id="k1_mixer" value="0.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k1_mixer_pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">Frete médio</span><div><input type="number" id="k1_frete" value="20.00" step="1" onchange="calc()"> <span class="prec-pct" id="k1_frete_pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">Imposto (%)</span><div><input type="number" id="k1_imposto" value="10.0" step="0.5" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
+      <div class="prec-row"><span class="prec-label">Gateway / Appmax (%)</span><div><input type="number" id="k1_gateway" value="4.99" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
+      <div class="prec-row"><span class="prec-label">Yampi (%)</span><div><input type="number" id="k1_yampi" value="2.5" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
+      <div class="prec-total">
+        <div class="t-row"><span class="t-label">Total custos variáveis</span><span class="t-val neg" id="k1_var_total">—</span></div>
+        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val" id="k1_var_pct" style="color:#e67e22">—</span></div>
+        <div class="t-row" style="margin-top:6px"><span class="t-label">Margem contribuição</span><span class="t-val pos" id="k1_mc">—</span></div>
+        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val pos" id="k1_mc_pct">—</span></div>
+        <div class="t-row"><span class="t-label">ROAS ideal (13% lucro)</span><span class="t-val" id="k1_roas13" style="color:#6c63ff">—</span></div>
+        <div class="t-row"><span class="t-label">CPA alvo (13% lucro)</span><span class="t-val" id="k1_cpa13" style="color:#3498db">—</span></div>
+      </div>
+    </div>
+    <div class="prec-card">
+      <div class="prec-header">2 Pacotes (Power Duo) — <span id="k2_preco_label">R$274.00</span></div>
+      <div class="prec-row"><span class="prec-label">Preço de venda</span><div><input type="number" id="k2_preco" value="274.00" step="1" onchange="calc()"> <span class="prec-pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">CMV produto</span><div><input type="number" id="k2_cmv" value="74.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k2_cmv_pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">Brinde / Mixer</span><div><input type="number" id="k2_mixer" value="12.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k2_mixer_pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">Frete médio</span><div><input type="number" id="k2_frete" value="20.00" step="1" onchange="calc()"> <span class="prec-pct" id="k2_frete_pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">Imposto (%)</span><div><input type="number" id="k2_imposto" value="10.0" step="0.5" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
+      <div class="prec-row"><span class="prec-label">Gateway / Appmax (%)</span><div><input type="number" id="k2_gateway" value="4.99" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
+      <div class="prec-row"><span class="prec-label">Yampi (%)</span><div><input type="number" id="k2_yampi" value="2.5" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
+      <div class="prec-total">
+        <div class="t-row"><span class="t-label">Total custos variáveis</span><span class="t-val neg" id="k2_var_total">—</span></div>
+        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val" id="k2_var_pct" style="color:#e67e22">—</span></div>
+        <div class="t-row" style="margin-top:6px"><span class="t-label">Margem contribuição</span><span class="t-val pos" id="k2_mc">—</span></div>
+        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val pos" id="k2_mc_pct">—</span></div>
+        <div class="t-row"><span class="t-label">ROAS ideal (13% lucro)</span><span class="t-val" id="k2_roas13" style="color:#6c63ff">—</span></div>
+        <div class="t-row"><span class="t-label">CPA alvo (13% lucro)</span><span class="t-val" id="k2_cpa13" style="color:#3498db">—</span></div>
+      </div>
+    </div>
+    <div class="prec-card">
+      <div class="prec-header">3 Pacotes — <span id="k3_preco_label">R$381.00</span></div>
+      <div class="prec-row"><span class="prec-label">Preço de venda</span><div><input type="number" id="k3_preco" value="381.00" step="1" onchange="calc()"> <span class="prec-pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">CMV produto</span><div><input type="number" id="k3_cmv" value="111.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k3_cmv_pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">Brinde / Mixer</span><div><input type="number" id="k3_mixer" value="12.00" step="0.5" onchange="calc()"> <span class="prec-pct" id="k3_mixer_pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">Frete médio</span><div><input type="number" id="k3_frete" value="20.00" step="1" onchange="calc()"> <span class="prec-pct" id="k3_frete_pct"></span></div></div>
+      <div class="prec-row"><span class="prec-label">Imposto (%)</span><div><input type="number" id="k3_imposto" value="10.0" step="0.5" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
+      <div class="prec-row"><span class="prec-label">Gateway / Appmax (%)</span><div><input type="number" id="k3_gateway" value="4.99" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
+      <div class="prec-row"><span class="prec-label">Yampi (%)</span><div><input type="number" id="k3_yampi" value="2.5" step="0.1" onchange="calc()"> <span class="prec-pct">% receita</span></div></div>
+      <div class="prec-total">
+        <div class="t-row"><span class="t-label">Total custos variáveis</span><span class="t-val neg" id="k3_var_total">—</span></div>
+        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val" id="k3_var_pct" style="color:#e67e22">—</span></div>
+        <div class="t-row" style="margin-top:6px"><span class="t-label">Margem contribuição</span><span class="t-val pos" id="k3_mc">—</span></div>
+        <div class="t-row"><span class="t-label">% do preço</span><span class="t-val pos" id="k3_mc_pct">—</span></div>
+        <div class="t-row"><span class="t-label">ROAS ideal (13% lucro)</span><span class="t-val" id="k3_roas13" style="color:#6c63ff">—</span></div>
+        <div class="t-row"><span class="t-label">CPA alvo (13% lucro)</span><span class="t-val" id="k3_cpa13" style="color:#3498db">—</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="fixos-card">
+    <div class="prec-header">Fixos — editável</div>
+    <div id="fixos-prec-rows"></div>
+    <div class="prec-total">
+      <div class="t-row"><span class="t-label">Total fixos/mês</span><span class="t-val" id="fixos_mes" style="color:#e67e22">—</span></div>
+      <div class="t-row"><span class="t-label">Rateio diário</span><span class="t-val" id="fixos_dia" style="color:#888">—</span></div>
+    </div>
+  </div>
+  <div class="section-title">📈 ROAS Ideal por Kit e Meta de Lucro</div>
+  <div class="roas-box">
+    <h3>Pedidos por dia: <select id="peds_dia" onchange="calc()" style="background:#0f1117;color:#fff;border:1px solid #3d4060;border-radius:4px;padding:3px 8px">
+      <option value="1">1 pedido/dia</option><option value="2">2 pedidos/dia</option>
+      <option value="3" selected>3 pedidos/dia</option><option value="5">5 pedidos/dia</option><option value="7">7 pedidos/dia</option>
+    </select></h3>
+    <table class="roas-table" style="margin-top:12px">
+      <thead><tr><th style="text-align:left">Kit</th><th>Meta 10%</th><th>Meta 13%</th><th>Meta 15%</th><th>CPA máx. (13%)</th></tr></thead>
+      <tbody id="roas-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- ── FECHAMENTO MENSAL ───────────────────────────────────────────── -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:32px 0 20px">
     <div>
       <div class="section-title" style="margin:0 0 4px">📋 Fechamento Mensal</div>
       <div style="font-size:.8rem;color:#666">Relatório consolidado por mês — receita real Yampi + custos + resultado</div>
@@ -1173,7 +1314,11 @@ function renderRelatorio(rel){
       <select id="sel-dias-pedidos" style="background:#1a1d2e;border:1px solid #3d4060;color:#e0e0e0;padding:5px 10px;border-radius:6px;font-size:.8rem">
         <option value="7">Últimos 7 dias</option>
         <option value="15">Últimos 15 dias</option>
-        <option value="30" selected>Últimos 30 dias</option>
+        <option value="30">Últimos 30 dias</option>
+        <option value="60">Últimos 60 dias</option>
+        <option value="90">Últimos 90 dias</option>
+        <option value="120">Últimos 120 dias</option>
+        <option value="9999" selected>Todos</option>
       </select>
       <button onclick="carregarPedidos()" style="background:#252836;color:#aaa;border:1px solid #3d4060;padding:6px 14px;border-radius:6px;font-size:.78rem;cursor:pointer">↻ Atualizar</button>
     </div>
@@ -1185,6 +1330,167 @@ function renderRelatorio(rel){
   </div>
 
 </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="panel-estoque" style="display:none">
+<div class="container">
+
+  <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <span>📦 Controle de Estoque</span>
+    <div style="display:flex;gap:8px">
+      <button onclick="sincronizarEstoque()" style="background:#2d3047;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-size:.8rem;cursor:pointer;font-weight:600">🔄 Sincronizar Yampi</button>
+      <button onclick="abrirModalMovimentacao('saida_creator')" style="background:#4a2a1a;color:#f39c12;border:1px solid #f39c12;padding:7px 14px;border-radius:6px;font-size:.8rem;cursor:pointer;font-weight:700">👤 Saída Creator/Influencer</button>
+      <button onclick="abrirModalMovimentacao('saida_brinde')" style="background:#2a1a4a;color:#9b59b6;border:1px solid #9b59b6;padding:7px 14px;border-radius:6px;font-size:.8rem;cursor:pointer;font-weight:700">🎁 Brinde/Amostra</button>
+      <button onclick="abrirModalMovimentacao('entrada')" style="background:#1a4731;color:#27ae60;border:1px solid #27ae60;padding:7px 14px;border-radius:6px;font-size:.8rem;cursor:pointer;font-weight:700">➕ Entrada de Estoque</button>
+    </div>
+  </div>
+
+  <!-- KPIs de estoque -->
+  <div id="estoque-kpis" class="kpi-grid" style="margin-bottom:20px"><div class="loading">Carregando...</div></div>
+
+  <!-- Modal movimentação -->
+  <div id="modal-movimentacao" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center">
+    <div style="background:#1a1d2e;border:1px solid #3b82f6;border-radius:14px;padding:28px;width:480px;max-width:95vw">
+      <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:20px" id="modal-titulo">Registrar Movimentação</div>
+      <input type="hidden" id="modal-tipo">
+      <div style="display:grid;gap:12px">
+        <div>
+          <label style="color:#888;font-size:.78rem;display:block;margin-bottom:4px">QUANTIDADE</label>
+          <input type="number" id="mov-qtd" min="1" value="1" style="width:100%;background:#252836;color:#fff;border:1px solid #3d4166;border-radius:6px;padding:8px 12px;font-size:.9rem;box-sizing:border-box">
+        </div>
+        <div id="modal-creator-field" style="display:none">
+          <label style="color:#888;font-size:.78rem;display:block;margin-bottom:4px">CREATOR / INFLUENCER</label>
+          <select id="mov-creator" style="width:100%;background:#252836;color:#fff;border:1px solid #3d4166;border-radius:6px;padding:8px 12px;font-size:.85rem;box-sizing:border-box">
+            <option value="">Selecionar Creator...</option>
+          </select>
+        </div>
+        <div>
+          <label style="color:#888;font-size:.78rem;display:block;margin-bottom:4px">DESCRIÇÃO / MOTIVO</label>
+          <input type="text" id="mov-descricao" placeholder="Ex: Kit enviado para review no Instagram" style="width:100%;background:#252836;color:#fff;border:1px solid #3d4166;border-radius:6px;padding:8px 12px;font-size:.85rem;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="color:#888;font-size:.78rem;display:block;margin-bottom:4px">RESPONSÁVEL</label>
+          <select id="mov-responsavel" style="width:100%;background:#252836;color:#fff;border:1px solid #3d4166;border-radius:6px;padding:8px 12px;font-size:.85rem;box-sizing:border-box">
+            <option value="Felipe">Felipe</option>
+            <option value="Caio">Caio</option>
+          </select>
+        </div>
+      </div>
+      <div id="modal-status" style="margin-top:12px;font-size:.82rem"></div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onclick="salvarMovimentacao()" style="flex:1;background:#1a4731;color:#27ae60;border:1px solid #27ae60;padding:10px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.9rem">✅ Confirmar</button>
+        <button onclick="fecharModal()" style="flex:1;background:#2d3047;color:#aaa;border:none;padding:10px;border-radius:8px;cursor:pointer;font-size:.9rem">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal ajuste de estoque -->
+  <div id="modal-ajuste" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center">
+    <div style="background:#1a1d2e;border:1px solid #f39c12;border-radius:14px;padding:28px;width:400px;max-width:95vw">
+      <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:16px">⚖️ Ajuste de Estoque</div>
+      <label style="color:#888;font-size:.78rem;display:block;margin-bottom:4px">QUANTIDADE REAL (contagem física)</label>
+      <input type="number" id="ajuste-qtd" min="0" style="width:100%;background:#252836;color:#fff;border:1px solid #3d4166;border-radius:6px;padding:8px 12px;font-size:1.1rem;font-weight:700;box-sizing:border-box">
+      <label style="color:#888;font-size:.78rem;display:block;margin:12px 0 4px">MOTIVO</label>
+      <input type="text" id="ajuste-motivo" value="Contagem física" style="width:100%;background:#252836;color:#fff;border:1px solid #3d4166;border-radius:6px;padding:8px 12px;font-size:.85rem;box-sizing:border-box">
+      <div id="ajuste-status" style="margin-top:10px;font-size:.82rem"></div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button onclick="confirmarAjuste()" style="flex:1;background:#4a3000;color:#f39c12;border:1px solid #f39c12;padding:10px;border-radius:8px;cursor:pointer;font-weight:700">Confirmar Ajuste</button>
+        <button onclick="document.getElementById('modal-ajuste').style.display='none'" style="flex:1;background:#2d3047;color:#aaa;border:none;padding:10px;border-radius:8px;cursor:pointer">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabela de movimentações -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div style="color:#aaa;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px">Histórico de Movimentações</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="filtro-tipo-mov" onchange="filtrarMovimentacoes()" style="background:#1a1d2e;color:#aaa;border:1px solid #2d3047;border-radius:5px;padding:5px 8px;font-size:.78rem">
+        <option value="">Todos os tipos</option>
+        <option value="saida_venda">Saída Venda</option>
+        <option value="saida_creator">Saída Creator</option>
+        <option value="saida_brinde">Saída Brinde</option>
+        <option value="entrada">Entrada</option>
+        <option value="ajuste">Ajuste</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-box" style="overflow:auto">
+    <div id="estoque-historico"><div class="loading" style="padding:20px;text-align:center">Carregando movimentações...</div></div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="panel-expedicao" style="display:none">
+<div class="container">
+
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px">
+    <div>
+      <div style="font-size:1.1rem;font-weight:800;color:#e0e0e0;letter-spacing:.3px">🚚 Expedição — Melhor Envio</div>
+      <div id="expedicao-count" style="color:#6b7280;font-size:.78rem;margin-top:2px"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button onclick="carregarExpedicao()" style="background:#1e2235;color:#9ca3af;border:1px solid #2d3047;padding:7px 14px;border-radius:6px;font-size:.78rem;cursor:pointer;font-weight:600">↻ Atualizar</button>
+      <button onclick="sincronizarME()" id="btn-sync-me" style="background:#0d1e35;color:#3b82f6;border:1px solid #1e3a5f;padding:7px 14px;border-radius:6px;font-size:.78rem;cursor:pointer;font-weight:700">🔄 Sincronizar ME</button>
+      <button onclick="despacharTodas()" style="background:#1a4731;color:#27ae60;border:1px solid #27ae60;padding:7px 14px;border-radius:6px;font-size:.78rem;cursor:pointer;font-weight:700">🚀 Despachar Todas</button>
+    </div>
+  </div>
+
+  <!-- Cards de resumo -->
+  <div id="exp-summary-cards" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px"></div>
+
+  <!-- Barra de filtros + busca -->
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    <div id="exp-filtros" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <input id="exp-busca" type="text" placeholder="🔍 Buscar pedido, cliente ou rastreio..." oninput="filtrarExpedicao()"
+      style="background:#1a1d2e;border:1px solid #2d3047;border-radius:8px;color:#e0e0e0;padding:8px 14px;font-size:.8rem;outline:none;width:280px">
+  </div>
+
+  <div id="expedicao-status" style="margin-bottom:12px;font-size:.82rem"></div>
+  <div id="expedicao-links"></div>
+
+  <div class="table-box" style="overflow:auto">
+    <div id="expedicao-lista"><div class="loading" style="padding:40px;text-align:center">Clique em 🚚 Expedição para carregar</div></div>
+  </div>
+
+  <!-- Remetente info -->
+  <div style="background:#1a1d2e;border:1px solid #2d3047;border-radius:10px;padding:16px;margin-top:16px">
+    <div style="color:#aaa;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📦 Remetente Configurado</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+      <div><span style="color:#888;font-size:.72rem">Nome</span><br><span style="color:#fff;font-size:.85rem;font-weight:600">FELIPE DE SOUSA</span></div>
+      <div><span style="color:#888;font-size:.72rem">Telefone</span><br><span style="color:#fff;font-size:.85rem">(19) 99198-8819</span></div>
+      <div><span style="color:#888;font-size:.72rem">Endereço</span><br><span style="color:#fff;font-size:.85rem">Rua Ver. F. Spadaccia, 355</span></div>
+      <div><span style="color:#888;font-size:.72rem">Cidade</span><br><span style="color:#fff;font-size:.85rem">Valinhos/SP</span></div>
+      <div><span style="color:#888;font-size:.72rem">CEP</span><br><span style="color:#fff;font-size:.85rem">13273-062</span></div>
+    </div>
+  </div>
+
+  <!-- Tabela de dimensões -->
+  <div style="background:#1a1d2e;border:1px solid #2d3047;border-radius:10px;padding:16px;margin-top:12px">
+    <div style="color:#aaa;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📐 Dimensões por Kit</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead><tr style="color:#888;font-size:.72rem">
+        <th style="text-align:left;padding:6px 8px">Kit</th>
+        <th style="padding:6px 8px">Peso</th>
+        <th style="padding:6px 8px">A×L×C (cm)</th>
+      </tr></thead>
+      <tbody style="color:#ccc">
+        <tr><td style="padding:5px 8px">1 Pacote</td><td style="text-align:center;padding:5px 8px">300g</td><td style="text-align:center;padding:5px 8px">5×10×15</td></tr>
+        <tr><td style="padding:5px 8px">Power Duo (2x)</td><td style="text-align:center;padding:5px 8px">550g</td><td style="text-align:center;padding:5px 8px">8×12×20</td></tr>
+        <tr><td style="padding:5px 8px">3 Pacotes</td><td style="text-align:center;padding:5px 8px">800g</td><td style="text-align:center;padding:5px 8px">10×15×25</td></tr>
+        <tr><td style="padding:5px 8px">6 Pacotes</td><td style="text-align:center;padding:5px 8px">1500g</td><td style="text-align:center;padding:5px 8px">15×20×30</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</div>
+
+<div id="panel-marketing" style="display:none;height:calc(100vh - 57px);overflow:hidden">
+  <iframe id="marketing-iframe" src="/marketing?embedded=1" style="width:100%;height:100%;border:none;background:#0d0f1a"></iframe>
 </div>
 
 <script>
@@ -1267,6 +1573,694 @@ function carregarRecompra() {
     .catch(function(e){
       tbody.innerHTML = '<tr><td colspan="7" style="color:#e74c3c;text-align:center;padding:20px">Erro: '+e+'</td></tr>';
     });
+}
+
+// ── Estoque ───────────────────────────────────────────────────────────────
+var _estoqueData = null;
+var _creatorsCache = [];
+
+function carregarEstoque() {
+  document.getElementById('estoque-kpis').innerHTML = '<div class="loading">Carregando...</div>';
+  fetch('/api/estoque')
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      _estoqueData = d;
+      renderEstoqueKPIs(d);
+      renderMovimentacoes(d.movimentacoes || []);
+    })
+    .catch(function(e){ document.getElementById('estoque-kpis').innerHTML = '<div style="color:#e74c3c">Erro: '+e+'</div>'; });
+  // Carregar creators para o select
+  fetch('/api/data')
+    .then(function(r){ return r.json(); })
+    .then(function(d){ _creatorsCache = d.creators || []; })
+    .catch(function(){});
+}
+
+function renderEstoqueKPIs(d) {
+  var prods = d.produtos || [];
+  var movs  = d.movimentacoes || [];
+  var hoje  = new Date().toISOString().substring(0,10);
+  var saidasHoje = movs.filter(function(m){ return m.data && m.data.startsWith(hoje) && m.tipo.startsWith('saida'); });
+  var qtdHoje = saidasHoje.reduce(function(acc,m){ return acc + m.quantidade; }, 0);
+  var saidasCreator = movs.filter(function(m){ return m.tipo === 'saida_creator'; });
+  var qtdCreator = saidasCreator.reduce(function(acc,m){ return acc + m.quantidade; }, 0);
+  var saidasVenda = movs.filter(function(m){ return m.tipo === 'saida_venda'; });
+  var qtdVenda = saidasVenda.reduce(function(acc,m){ return acc + m.quantidade; }, 0);
+  var html = '';
+  prods.forEach(function(p) {
+    var alerta = p.estoque_atual <= p.estoque_minimo;
+    var cor = alerta ? 'red' : p.estoque_atual <= p.estoque_minimo * 2 ? 'orange' : 'green';
+    html += '<div class="kpi '+cor+'" style="cursor:pointer" onclick="abrirAjuste(\''+p.id+'\','+p.estoque_atual+')">'
+      +'<div class="label">'+p.nome+'</div>'
+      +'<div class="value">'+p.estoque_atual+'<span style="font-size:.5em;font-weight:400;margin-left:4px">un.</span></div>'
+      +'<div class="sub">'+(alerta ? '⚠️ Abaixo do mínimo ('+p.estoque_minimo+')' : 'Mínimo: '+p.estoque_minimo+' un.')+'</div>'
+      +'</div>';
+  });
+  html += '<div class="kpi blue"><div class="label">Saídas Hoje</div><div class="value">'+qtdHoje+'</div><div class="sub">unidades</div></div>';
+  html += '<div class="kpi orange"><div class="label">Creators/Influencers</div><div class="value">'+qtdCreator+'</div><div class="sub">total enviado</div></div>';
+  html += '<div class="kpi teal"><div class="label">Saídas por Venda</div><div class="value">'+qtdVenda+'</div><div class="sub">via expedição</div></div>';
+  document.getElementById('estoque-kpis').innerHTML = html;
+}
+
+function renderMovimentacoes(movs) {
+  if (!movs.length) {
+    document.getElementById('estoque-historico').innerHTML = '<div style="color:#888;text-align:center;padding:30px">Nenhuma movimentação registrada ainda.</div>';
+    return;
+  }
+  var filtro = document.getElementById('filtro-tipo-mov') ? document.getElementById('filtro-tipo-mov').value : '';
+  var lista = filtro ? movs.filter(function(m){ return m.tipo === filtro; }) : movs;
+  var TIPO_LABEL = {
+    'saida_venda':   ['🛒','#27ae60','Venda'],
+    'saida_creator': ['👤','#f39c12','Creator'],
+    'saida_brinde':  ['🎁','#9b59b6','Brinde'],
+    'entrada':       ['📥','#3b82f6','Entrada'],
+    'ajuste':        ['⚖️','#e67e22','Ajuste'],
+  };
+  var rows = lista.map(function(m) {
+    var tl = TIPO_LABEL[m.tipo] || ['📌','#aaa', m.tipo];
+    var sinal = m.tipo === 'entrada' ? '+' : m.tipo === 'ajuste' ? '=' : '-';
+    var corQtd = m.tipo === 'entrada' ? '#27ae60' : m.tipo === 'ajuste' ? '#f39c12' : '#e74c3c';
+    return '<tr>'
+      +'<td style="color:#888;font-size:.75rem;white-space:nowrap">'+m.data+'</td>'
+      +'<td><span style="background:'+tl[1]+'22;color:'+tl[1]+';padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:700">'+tl[0]+' '+tl[2]+'</span></td>'
+      +'<td style="font-weight:700;color:'+corQtd+'">'+(sinal === '=' ? '' : sinal)+m.quantidade+' un.</td>'
+      +'<td style="font-size:.8rem;color:#ddd;max-width:300px">'+m.descricao+'</td>'
+      +'<td style="font-size:.75rem;color:#888">'+m.responsavel+'</td>'
+      +'<td style="font-size:.75rem;color:#aaa">'+m.estoque_antes+' → '+m.estoque_depois+'</td>'
+      +'<td style="font-size:.75rem;color:#888">'+( m.pedido_ref ? '#'+m.pedido_ref : '—' )+'</td>'
+      +'</tr>';
+  }).join('');
+  document.getElementById('estoque-historico').innerHTML =
+    '<table style="width:100%;border-collapse:collapse;font-size:.82rem">'
+    +'<thead><tr style="background:#252836;color:#aaa;font-size:.72rem;text-transform:uppercase">'
+    +'<th style="padding:8px 10px;text-align:left">Data</th>'
+    +'<th style="padding:8px 10px;text-align:left">Tipo</th>'
+    +'<th style="padding:8px 10px;text-align:left">Qtd</th>'
+    +'<th style="padding:8px 10px;text-align:left">Descrição</th>'
+    +'<th style="padding:8px 10px;text-align:left">Responsável</th>'
+    +'<th style="padding:8px 10px;text-align:left">Estoque</th>'
+    +'<th style="padding:8px 10px;text-align:left">Pedido</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function filtrarMovimentacoes() {
+  if (_estoqueData) renderMovimentacoes(_estoqueData.movimentacoes || []);
+}
+
+function sincronizarEstoque() {
+  document.getElementById('estoque-kpis').innerHTML = '<div class="loading">Sincronizando com Yampi...</div>';
+  fetch('/api/estoque/sincronizar')
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      _estoqueData = d.estoque;
+      renderEstoqueKPIs(d.estoque);
+      renderMovimentacoes(d.estoque.movimentacoes || []);
+    })
+    .catch(function(e){ alert('Erro: '+e); });
+}
+
+function abrirModalMovimentacao(tipo) {
+  var TITULOS = {
+    'saida_creator': '👤 Saída para Creator / Influencer',
+    'saida_brinde':  '🎁 Saída — Brinde / Amostra',
+    'entrada':       '📥 Entrada de Estoque',
+  };
+  document.getElementById('modal-titulo').textContent = TITULOS[tipo] || 'Movimentação';
+  document.getElementById('modal-tipo').value = tipo;
+  document.getElementById('mov-qtd').value = 1;
+  document.getElementById('mov-descricao').value = '';
+  document.getElementById('modal-status').textContent = '';
+  // Creator field
+  var cf = document.getElementById('modal-creator-field');
+  if (tipo === 'saida_creator') {
+    cf.style.display = 'block';
+    var sel = document.getElementById('mov-creator');
+    sel.innerHTML = '<option value="">Selecionar Creator...</option>';
+    _creatorsCache.forEach(function(c){
+      sel.innerHTML += '<option value="'+c.nome+'">'+c.nome+' ('+c.tier+')</option>';
+    });
+  } else {
+    cf.style.display = 'none';
+  }
+  document.getElementById('modal-movimentacao').style.display = 'flex';
+}
+
+function fecharModal() {
+  document.getElementById('modal-movimentacao').style.display = 'none';
+}
+
+function salvarMovimentacao() {
+  var tipo    = document.getElementById('modal-tipo').value;
+  var qtd     = parseInt(document.getElementById('mov-qtd').value) || 1;
+  var desc    = document.getElementById('mov-descricao').value.trim();
+  var resp    = document.getElementById('mov-responsavel').value;
+  var creator = document.getElementById('mov-creator') ? document.getElementById('mov-creator').value : '';
+  if (tipo === 'saida_creator' && creator) desc = (desc ? desc + ' — ' : '') + 'Creator: ' + creator;
+  if (!desc) { document.getElementById('modal-status').innerHTML = '<span style="color:#e74c3c">Informe uma descrição.</span>'; return; }
+  document.getElementById('modal-status').innerHTML = '<span style="color:#f39c12">Salvando...</span>';
+  fetch('/api/estoque/movimentacao', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ tipo: tipo, produto_id: 'POWERMIND-1UN', quantidade: qtd, origem: tipo === 'entrada' ? 'manual' : 'creator', descricao: desc, responsavel: resp })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    if (d.ok) {
+      fecharModal();
+      _estoqueData = d.estoque;
+      renderEstoqueKPIs(d.estoque);
+      renderMovimentacoes(d.estoque.movimentacoes || []);
+    } else {
+      document.getElementById('modal-status').innerHTML = '<span style="color:#e74c3c">Erro: '+d.erro+'</span>';
+    }
+  })
+  .catch(function(e){ document.getElementById('modal-status').innerHTML = '<span style="color:#e74c3c">Erro: '+e+'</span>'; });
+}
+
+function abrirAjuste(produtoId, estoqueAtual) {
+  document.getElementById('ajuste-qtd').value = estoqueAtual;
+  document.getElementById('ajuste-motivo').value = 'Contagem física';
+  document.getElementById('ajuste-status').textContent = '';
+  document.getElementById('modal-ajuste').setAttribute('data-produto', produtoId);
+  document.getElementById('modal-ajuste').style.display = 'flex';
+}
+
+function confirmarAjuste() {
+  var produtoId = document.getElementById('modal-ajuste').getAttribute('data-produto');
+  var qtd    = parseInt(document.getElementById('ajuste-qtd').value);
+  var motivo = document.getElementById('ajuste-motivo').value;
+  document.getElementById('ajuste-status').innerHTML = '<span style="color:#f39c12">Salvando...</span>';
+  fetch('/api/estoque/ajuste', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ produto_id: produtoId, quantidade: qtd, motivo: motivo, responsavel: 'Felipe' })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    if (d.ok) {
+      document.getElementById('modal-ajuste').style.display = 'none';
+      carregarEstoque();
+    } else {
+      document.getElementById('ajuste-status').innerHTML = '<span style="color:#e74c3c">Erro: '+d.erro+'</span>';
+    }
+  });
+}
+
+// ── Expedição / Melhor Envio ──────────────────────────────────────────────
+var _expedicaoPedidos = [];
+var _enviosME = {};
+var _expFiltroAtivo = 'a_enviar'; // padrão: A Enviar
+var _expArquivados = {}; // pedidos arquivados manualmente
+
+var EXP_GRUPOS = [
+  {key:'a_enviar',   label:'A Enviar',    cor:'#f59e0b', bg:'#1c1408', borda:'#78350f', dot:'#f59e0b'},
+  {key:'gerado',     label:'Liberado',    cor:'#a78bfa', bg:'#180f2e', borda:'#4c1d95', dot:'#a78bfa'},
+  {key:'transito',   label:'Em Trânsito', cor:'#60a5fa', bg:'#0c1a2e', borda:'#1e40af', dot:'#60a5fa'},
+  {key:'entregue',   label:'Entregue',    cor:'#4ade80', bg:'#0a1a10', borda:'#166534', dot:'#4ade80'},
+  {key:'problema',   label:'Problema',    cor:'#f87171', bg:'#200a0a', borda:'#7f1d1d', dot:'#f87171'},
+  {key:'arquivado',  label:'Arquivados',  cor:'#6b7280', bg:'#111318', borda:'#374151', dot:'#6b7280'},
+];
+
+function expGrupo(p) {
+  if (_expArquivados[String(p.numero)]) return 'arquivado';
+  var envio = _enviosME[String(p.numero)];
+  if (!envio) return 'a_enviar';
+  var s = envio.status_me || 'generated';
+  if (s === 'delivered')  return 'entregue';
+  if (s === 'undelivered' || s === 'canceled') return 'problema';
+  if (s === 'posted' || s === 'received') return 'transito';
+  return 'gerado';
+}
+
+function expStatusBadge(envio) {
+  if (!envio) return '<span style="display:inline-flex;align-items:center;gap:5px;background:#1c1408;border:1px solid #78350f;color:#f59e0b;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;white-space:nowrap">⏳ Aguardando envio</span>';
+  var cfg = {
+    released:   {bg:'#180f2e',bor:'#4c1d95',cor:'#a78bfa',txt:'Etiqueta gerada'},
+    generated:  {bg:'#180f2e',bor:'#4c1d95',cor:'#a78bfa',txt:'Etiqueta gerada'},
+    received:   {bg:'#0c1a2e',bor:'#1e40af',cor:'#60a5fa',txt:'Recebido transp.'},
+    posted:     {bg:'#0c1a2e',bor:'#1e40af',cor:'#60a5fa',txt:'Em trânsito'},
+    delivered:  {bg:'#0a1a10',bor:'#166534',cor:'#4ade80',txt:'Entregue'},
+    undelivered:{bg:'#200a0a',bor:'#7f1d1d',cor:'#f87171',txt:'Não entregue'},
+    canceled:   {bg:'#1a1a1a',bor:'#444',   cor:'#888',   txt:'Cancelado'},
+  };
+  var c = cfg[envio.status_me||'generated'] || cfg.generated;
+  var transp = envio.transportadora ? '<span style="color:#555;margin-left:4px">·</span><span style="color:#6b7280;margin-left:4px">'+envio.transportadora+'</span>' : '';
+  return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+c.bg+';border:1px solid '+c.bor+';color:'+c.cor+';padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;white-space:nowrap">'
+    +'<span style="width:6px;height:6px;background:'+c.cor+';border-radius:50%;display:inline-block"></span>'
+    +c.txt+transp+'</span>';
+}
+
+function expContagem(pedidos) {
+  var ct = {a_enviar:0, gerado:0, transito:0, entregue:0, problema:0};
+  pedidos.forEach(function(p){ var g = expGrupo(p); if(ct[g] !== undefined) ct[g]++; });
+  return ct;
+}
+
+function renderExpSummary(pedidos) {
+  var ct = expContagem(pedidos);
+  var total = pedidos.length;
+  var urgente = ct.a_enviar;
+  // KPI bar
+  var kpis = [
+    {label:'Total',       val: total,           cor:'#e0e0e0', sub:'pedidos'},
+    {label:'A Enviar',    val: ct.a_enviar,     cor:'#f59e0b', sub:'pendentes'},
+    {label:'Em Trânsito', val: ct.transito,     cor:'#60a5fa', sub:'a caminho'},
+    {label:'Entregues',   val: ct.entregue,     cor:'#4ade80', sub:'concluídos'},
+    {label:'Arquivados',  val: ct.arquivado||0, cor:'#6b7280', sub:'resolvidos'},
+  ];
+  document.getElementById('exp-summary-cards').innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">'
+    + kpis.map(function(k){
+        return '<div style="background:#161923;border:1px solid #2a2d3e;border-radius:10px;padding:14px 10px;text-align:center">'
+          +'<div style="font-size:1.6rem;font-weight:800;color:'+k.cor+';line-height:1">'+k.val+'</div>'
+          +'<div style="font-size:.65rem;color:'+k.cor+';font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:4px">'+k.label+'</div>'
+          +'<div style="font-size:.6rem;color:#555;margin-top:2px">'+k.sub+'</div>'
+          +'</div>';
+      }).join('')
+    +'</div>';
+
+  // Tabs de filtro
+  var tabs = [{key:'todos', label:'Todos', cor:'#e0e0e0', count: total}]
+    .concat(EXP_GRUPOS.map(function(g){ return {key:g.key, label:g.label, cor:g.cor, count:ct[g.key]}; }));
+  document.getElementById('exp-filtros').innerHTML = tabs.map(function(t){
+    var ativo = _expFiltroAtivo === t.key;
+    return '<button onclick="setFiltroExp(\''+t.key+'\')" style="'
+      +'background:'+(ativo ? t.cor : 'transparent')+';'
+      +'color:'+(ativo ? '#0f1117' : t.cor)+';'
+      +'border:1px solid '+(ativo ? t.cor : t.cor+'55')+';'
+      +'padding:6px 16px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap">'
+      +t.label
+      +' <span style="background:'+(ativo?'#00000022':''+t.cor+'22')+';padding:1px 7px;border-radius:10px;font-size:.68rem">'+t.count+'</span>'
+      +'</button>';
+  }).join('');
+}
+
+function setFiltroExp(filtro) {
+  _expFiltroAtivo = filtro;
+  filtrarExpedicao();
+}
+
+function filtrarExpedicao() {
+  var busca = ((document.getElementById('exp-busca')||{}).value||'').toLowerCase().trim();
+  var filtered = _expedicaoPedidos.filter(function(p){
+    if (_expFiltroAtivo !== 'todos' && expGrupo(p) !== _expFiltroAtivo) return false;
+    if (busca) {
+      var envio = _enviosME[String(p.numero)] || {};
+      var txt = (String(p.numero)+' '+(p.cliente||'')+' '+(p.cidade||'')+' '+(envio.tracking_code||'')).toLowerCase();
+      if (txt.indexOf(busca) === -1) return false;
+    }
+    return true;
+  });
+  renderExpSummary(_expedicaoPedidos);
+  renderExpedicaoTabela(filtered);
+}
+
+function carregarExpedicao() {
+  var wrapper = document.getElementById('expedicao-lista');
+  wrapper.innerHTML = '<div class="loading" style="padding:40px;text-align:center">🔄 Sincronizando expedição...</div>';
+  document.getElementById('expedicao-status').textContent = '';
+  Promise.all([
+    fetch('/api/expedicao/pedidos').then(function(r){ return r.json(); }),
+    fetch('/api/expedicao/envios-me').then(function(r){ return r.json(); }).catch(function(){ return {envios:{},arquivados:{}}; })
+  ]).then(function(results){
+    _expedicaoPedidos = results[0].pedidos || [];
+    _enviosME = results[1].envios || {};
+    _expArquivados = results[1].arquivados || {};
+    document.getElementById('expedicao-status').innerHTML = '';
+    filtrarExpedicao();
+  }).catch(function(e){
+    wrapper.innerHTML = '<div style="color:#e74c3c;padding:20px">Erro: '+e+'</div>';
+  });
+}
+
+function renderExpedicaoTabela(pedidos) {
+  var wrapper = document.getElementById('expedicao-lista');
+  // Atualizar contador
+  document.getElementById('expedicao-count').textContent = pedidos.length + ' pedido(s)';
+
+  if (!pedidos.length) {
+    wrapper.innerHTML = '<div style="text-align:center;padding:48px 20px;color:#4b5563">'
+      +'<div style="font-size:2.5rem;margin-bottom:12px">📭</div>'
+      +'<div style="font-weight:700;color:#e0e0e0;margin-bottom:4px">Nenhum pedido neste filtro</div>'
+      +'<div style="font-size:.8rem">Tente outro filtro ou atualize os dados</div>'
+      +'</div>';
+    return;
+  }
+
+  // Ordenar: a_enviar por data (mais antigos primeiro = mais urgentes), outros por data desc
+  var grupo = _expFiltroAtivo;
+  pedidos = pedidos.slice().sort(function(a, b){
+    var ga = expGrupo(a), gb = expGrupo(b);
+    if (ga === 'a_enviar' && gb !== 'a_enviar') return -1;
+    if (gb === 'a_enviar' && ga !== 'a_enviar') return 1;
+    var da = a.created_at || '', db = b.created_at || '';
+    if (ga === 'a_enviar') return da < db ? -1 : 1; // mais antigos primeiro
+    return da > db ? -1 : 1; // mais recentes primeiro
+  });
+
+  var rows = pedidos.map(function(p, idx) {
+    // Índice original para compatibilidade com cotarPedido/gerarEtiqueta
+    var origIdx = _expedicaoPedidos.indexOf(p);
+    if (origIdx === -1) origIdx = idx;
+
+    var data = (p.created_at||'').substring(0,10);
+    // Calcular dias desde o pedido
+    var diasStr = '';
+    if (data) {
+      var diff = Math.floor((new Date() - new Date(data)) / 86400000);
+      var diasCor = diff > 7 ? '#f87171' : diff > 3 ? '#f59e0b' : '#6b7280';
+      diasStr = '<span style="color:'+diasCor+';font-size:.68rem">'+diff+'d</span>';
+    }
+
+    var envio = _enviosME[String(p.numero)] || null;
+    var grupo  = expGrupo(p);
+
+    // Rastreio
+    var rastreioHtml = envio && envio.tracking_code
+      ? '<a href="https://melhorrastreio.com.br/rastreio/'+envio.tracking_code+'" target="_blank"'
+        +' style="color:#3b82f6;font-weight:700;font-size:.75rem;text-decoration:none;font-family:monospace;letter-spacing:.3px">'
+        +envio.tracking_code+'</a>'
+      : '<span style="color:#374151;font-size:.75rem">—</span>';
+
+    // Ações
+    var acoesHtml;
+    if (envio && envio.me_order_id) {
+      var printBtn = envio.print_url
+        ? '<a href="'+envio.print_url+'" target="_blank" style="background:#1a4731;color:#27ae60;border:none;padding:5px 11px;border-radius:6px;cursor:pointer;font-size:.72rem;text-decoration:none;display:inline-block;font-weight:600">🖨 Etiqueta</a>'
+        : '<button onclick="reimprimirEtiqueta(\''+envio.me_order_id+'\','+origIdx+')" style="background:#1a4731;color:#27ae60;border:none;padding:5px 11px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600">🖨 Etiqueta</button>';
+      var wppBtn = envio.tracking_code && p.telefone
+        ? ' <button onclick="enviarRastreioWpp(\''+p.telefone+'\',\''+envio.tracking_code+'\',\''+p.cliente+'\')" style="background:#14291a;border:1px solid #25d36660;padding:5px 8px;border-radius:6px;cursor:pointer" title="Enviar rastreio por WhatsApp"><span class="wpp-icon" style="width:14px;height:14px;margin:0;vertical-align:middle"></span></button>'
+        : '';
+      var podeCancelar = ['released','received','generated',''].indexOf(envio.status_me||'generated') !== -1;
+      var cancelBtn = podeCancelar
+        ? ' <button onclick="cancelarEnvioME(\''+envio.me_order_id+'\',\''+p.numero+'\','+origIdx+')" style="background:#2d0a0a;color:#f87171;border:1px solid #7f1d1d;padding:5px 9px;border-radius:6px;cursor:pointer;font-size:.7rem" title="Cancelar envio">✕</button>'
+        : '';
+      acoesHtml = printBtn + wppBtn + cancelBtn;
+    } else if (grupo === 'arquivado') {
+      var arq = _expArquivados[String(p.numero)] || {};
+      acoesHtml = '<span style="color:#4b5563;font-size:.7rem;font-style:italic">'+(arq.motivo||'Arquivado')+'</span>'
+        +' <button onclick="restaurarPedido(\''+p.numero+'\')" style="background:#1a1d2e;color:#6b7280;border:1px solid #374151;padding:5px 9px;border-radius:6px;cursor:pointer;font-size:.7rem" title="Restaurar pedido">↩ Restaurar</button>';
+    } else {
+      acoesHtml = '<button onclick="cotarPedido('+origIdx+')" style="background:#1e2235;color:#9ca3af;border:1px solid #2d3047;padding:5px 11px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600">💰 Cotar</button>'
+        +' <button onclick="gerarEtiqueta('+origIdx+')" id="exp-btn-'+origIdx+'" style="background:#1a4731;color:#27ae60;border:none;padding:5px 11px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600">🏷️ Gerar</button>'
+        +' <button onclick="arquivarPedido(\''+p.numero+'\')" style="background:#111318;color:#6b7280;border:1px solid #374151;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:.7rem" title="Arquivar (já resolvido)">📁</button>';
+    }
+
+    // Urgência visual na linha
+    var rowBg = grupo === 'a_enviar'
+      ? (p.created_at && Math.floor((new Date()-new Date(p.created_at))/86400000) > 5 ? 'background:#1c0e00' : '')
+      : grupo === 'entregue' ? 'background:#050e08'
+      : grupo === 'transito' ? 'background:#050a14'
+      : '';
+
+    var tdStyle = 'padding:10px 8px;border-bottom:1px solid #1a1d2e;vertical-align:middle';
+    return '<tr id="exp-row-'+origIdx+'" style="'+rowBg+';transition:.2s" onmouseover="this.style.background=\'#1a1d2e\'" onmouseout="this.style.background=\''+rowBg+'\'">'
+      +'<td style="'+tdStyle+';font-weight:700;color:#e0e0e0;font-size:.8rem">#'+p.numero+'</td>'
+      +'<td style="'+tdStyle+'">'
+        +'<div style="font-weight:600;color:#e0e0e0;font-size:.82rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.cliente+'</div>'
+        +'<div style="color:#6b7280;font-size:.68rem">'+p.cidade+'/'+p.estado+'</div>'
+      +'</td>'
+      +'<td style="'+tdStyle+';font-size:.75rem;color:#6b7280;font-family:monospace">'+p.cep+'</td>'
+      +'<td style="'+tdStyle+';text-align:center">'
+        +'<span style="background:#1a3a4a;color:#60a5fa;padding:2px 8px;border-radius:4px;font-weight:800;font-size:.75rem">'+p.qtd+'×</span>'
+      +'</td>'
+      +'<td style="'+tdStyle+';font-weight:700;color:#e0e0e0;font-size:.8rem">R$'+parseFloat(p.total).toFixed(2)+'</td>'
+      +'<td style="'+tdStyle+'">'
+        +'<div style="color:#9ca3af;font-size:.72rem">'+data+'</div>'
+        +'<div>'+diasStr+'</div>'
+      +'</td>'
+      +'<td style="'+tdStyle+'" id="exp-rastreio-'+origIdx+'">'+rastreioHtml+'</td>'
+      +'<td style="'+tdStyle+'" id="exp-status-'+origIdx+'">'+expStatusBadge(envio)+'</td>'
+      +'<td style="'+tdStyle+';text-align:right;white-space:nowrap" id="exp-acoes-'+origIdx+'">'+acoesHtml+'</td>'
+      +'</tr>';
+  }).join('');
+
+  wrapper.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:.82rem">'
+    +'<thead><tr style="background:#0f1117;border-bottom:2px solid #2a2d3e">'
+    +'<th style="padding:10px 8px;text-align:left;color:#4b5563;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Pedido</th>'
+    +'<th style="padding:10px 8px;text-align:left;color:#4b5563;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Cliente</th>'
+    +'<th style="padding:10px 8px;text-align:left;color:#4b5563;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px">CEP</th>'
+    +'<th style="padding:10px 8px;text-align:center;color:#4b5563;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Qtd</th>'
+    +'<th style="padding:10px 8px;text-align:left;color:#4b5563;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Total</th>'
+    +'<th style="padding:10px 8px;text-align:left;color:#4b5563;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Data · Dias</th>'
+    +'<th style="padding:10px 8px;text-align:left;color:#4b5563;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Rastreio</th>'
+    +'<th style="padding:10px 8px;text-align:left;color:#4b5563;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Status</th>'
+    +'<th style="padding:10px 8px;text-align:right;color:#4b5563;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Ações</th>'
+    +'</tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'</table>';
+}
+
+function renderStatusME(envio) {
+  return expStatusBadge(envio);
+}
+
+function sincronizarME() {
+  var btn = document.getElementById('btn-sync-me');
+  var statusEl = document.getElementById('expedicao-status');
+  btn.disabled = true; btn.textContent = '🔄 Sincronizando...';
+  statusEl.innerHTML = '<span style="color:#3b82f6">🔄 Puxando todos os dados do Melhor Envio + Yampi...</span>';
+  fetch('/api/expedicao/sincronizar-me')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      _enviosME = d.envios || {};
+      var st = d.por_status || {};
+      var partes = [];
+      if(st.released)    partes.push('📦 '+st.released+' liberados');
+      if(st.received)    partes.push('✅ '+st.received+' recebidos');
+      if(st.posted)      partes.push('🚚 '+st.posted+' em trânsito');
+      if(st.delivered)   partes.push('✅ '+st.delivered+' entregues');
+      if(st.undelivered) partes.push('⚠️ '+st.undelivered+' não entregues');
+      if(st.canceled)    partes.push('❌ '+st.canceled+' cancelados');
+      statusEl.innerHTML = '<div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:8px;padding:12px 16px;margin-bottom:12px">'
+        +'<div style="color:#4ade80;font-weight:700;margin-bottom:6px">✅ Sincronização completa — '+d.sincronizados+' pedidos com rastreio</div>'
+        +'<div style="font-size:.78rem;color:#9ca3af;display:flex;flex-wrap:wrap;gap:12px">'
+        +'<span>📦 '+d.total_me+' envios ME</span>'
+        +'<span>🛒 '+d.total_yampi+' pedidos Yampi</span>'
+        +'<span>⚠️ '+d.sem_envio_me+' sem envio ME</span>'
+        +(partes.length?'<span>'+partes.join(' · ')+'</span>':'')
+        +'</div>'
+        +(d.sem_envio_me>0?'<div style="font-size:.72rem;color:#6b7280;margin-top:4px">'+d.sem_envio_me+' pedidos sem envio correspondente no ME — use Cotar + Gerar para eles.</div>':'')
+        +'</div>';
+      renderExpedicaoTabela(_expedicaoPedidos);
+      btn.disabled = false; btn.textContent = '🔄 Sincronizar ME';
+    })
+    .catch(function(e){
+      statusEl.innerHTML = '<span style="color:#e74c3c">Erro ao sincronizar: '+e+'</span>';
+      btn.disabled = false; btn.textContent = '🔄 Sincronizar ME';
+    });
+}
+
+function enviarRastreioWpp(telefone, tracking, nomeCliente) {
+  var num = telefone.replace(/\D/g,'');
+  if(num.length <= 11) num = '55' + num;
+  var primeiro = (nomeCliente||'').split(' ')[0] || 'Olá';
+  var msg = 'Oi, ' + primeiro + '! Tudo bem?\n\n'
+    + 'Aqui é a equipe PowerMind! Seu pedido foi postado e já está a caminho.\n\n'
+    + 'Codigo de rastreio: *' + tracking + '*\n\n'
+    + 'Acompanhe sua entrega em:\n'
+    + 'https://melhorrastreio.com.br/rastreio/' + tracking + '\n\n'
+    + 'Qualquer duvida é so chamar. Obrigado pela confianca!';
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function reimprimirEtiqueta(orderId, idx) {
+  var statusEl = document.getElementById('exp-acoes-'+idx);
+  fetch('/api/expedicao/reimprimir', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.print_url) window.open(d.print_url,'_blank');
+      else alert('Erro ao reimprimir: '+(d.erro||'sem URL'));
+    }).catch(function(e){ alert('Erro: '+e); });
+}
+
+function cancelarEnvioME(orderId, pedidoNum, idx) {
+  if(!confirm('Cancelar envio ME do pedido #'+pedidoNum+'?\n\nO saldo será estornado ao Melhor Envio.')) return;
+  fetch('/api/expedicao/cancelar-me', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId, pedido_numero:pedidoNum})})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.ok){
+        delete _enviosME[String(pedidoNum)];
+        var row = document.getElementById('exp-row-'+idx);
+        if(row){
+          row.style.background='';
+          document.getElementById('exp-rastreio-'+idx).innerHTML='<span style="color:#555;font-size:.75rem">—</span>';
+          document.getElementById('exp-status-'+idx).innerHTML='—';
+          document.getElementById('exp-acoes-'+idx).innerHTML=
+            '<button onclick="cotarPedido('+idx+')" style="background:#2d3047;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:.75rem;margin-right:4px">💰 Cotar</button>'
+            +'<button onclick="gerarEtiqueta('+idx+')" style="background:#1a4731;color:#27ae60;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:.75rem">🏷️ Gerar</button>';
+        }
+      } else { alert('Erro ao cancelar: '+(d.erro||JSON.stringify(d.result))); }
+    }).catch(function(e){ alert('Erro: '+e); });
+}
+
+function arquivarPedido(pedidoNum) {
+  var motivos = ['Enviado por outro canal','Reembolsado','Duplicado','Cancelado pelo cliente','Outro'];
+  var motivo = prompt('Motivo do arquivamento (opcional):\n\n1 - Enviado por outro canal\n2 - Reembolsado\n3 - Duplicado\n4 - Cancelado pelo cliente\n5 - Outro\n\nDigite o número ou texto livre:', '1');
+  if (motivo === null) return; // cancelou
+  var motivoTexto = motivos[parseInt(motivo)-1] || motivo || 'Arquivado';
+  fetch('/api/expedicao/arquivar', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({pedido_numero: pedidoNum, acao:'arquivar', motivo: motivoTexto})
+  }).then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){
+      _expArquivados = d.arquivados || {};
+      filtrarExpedicao();
+    } else { alert('Erro: '+(d.erro||'?')); }
+  }).catch(function(e){ alert('Erro: '+e); });
+}
+
+function restaurarPedido(pedidoNum) {
+  fetch('/api/expedicao/arquivar', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({pedido_numero: pedidoNum, acao:'restaurar'})
+  }).then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){
+      _expArquivados = d.arquivados || {};
+      filtrarExpedicao();
+    } else { alert('Erro: '+(d.erro||'?')); }
+  }).catch(function(e){ alert('Erro: '+e); });
+}
+
+function cotarPedido(idx) {
+  var p = _expedicaoPedidos[idx];
+  var statusEl = document.getElementById('exp-status-'+idx);
+  statusEl.innerHTML = '<span style="color:#f39c12">🔄 Cotando...</span>';
+  fetch('/api/expedicao/cotar', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({cep: p.cep, qtd: p.qtd})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(cotacoes) {
+    if (!Array.isArray(cotacoes) || !cotacoes.length) {
+      statusEl.innerHTML = '<span style="color:#e74c3c">Sem cotações</span>';
+      return;
+    }
+    var disponiveis = cotacoes.filter(function(c){ return !c.error && c.price; });
+    if (!disponiveis.length) {
+      statusEl.innerHTML = '<span style="color:#e74c3c">Nenhuma disponível</span>';
+      return;
+    }
+    // Ordenar por preço
+    disponiveis.sort(function(a,b){ return parseFloat(a.price)-parseFloat(b.price); });
+    var html = '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">';
+    disponiveis.forEach(function(c){
+      var prazo = c.delivery_range ? c.delivery_range.min+'-'+c.delivery_range.max+'d' : '?d';
+      html += '<button onclick="gerarEtiquetaComServico('+idx+','+c.id+')" '
+        +'style="background:#1a2a3a;color:#fff;border:1px solid #2d4a6a;padding:4px 8px;border-radius:5px;cursor:pointer;font-size:.72rem;white-space:nowrap;transition:.15s" '
+        +'onmouseover="this.style.borderColor=\'#3b82f6\'" onmouseout="this.style.borderColor=\'#2d4a6a\'">'
+        +'<b style="color:#27ae60">R$'+parseFloat(c.price).toFixed(2)+'</b>'
+        +' '+c.name+' <span style="color:#888">('+prazo+')</span>'
+        +'</button>';
+    });
+    html += '</div>';
+    statusEl.innerHTML = html;
+  })
+  .catch(function(e){ statusEl.innerHTML = '<span style="color:#e74c3c">Erro: '+e+'</span>'; });
+}
+
+function gerarEtiqueta(idx) {
+  // Cotar primeiro automaticamente e usar o mais barato
+  var p = _expedicaoPedidos[idx];
+  var statusEl = document.getElementById('exp-status-'+idx);
+  statusEl.innerHTML = '<span style="color:#f39c12">🔄 Cotando e gerando...</span>';
+  fetch('/api/expedicao/cotar', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({cep: p.cep, qtd: p.qtd})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(cotacoes) {
+    var disponiveis = (Array.isArray(cotacoes) ? cotacoes : []).filter(function(c){ return !c.error; });
+    if (!disponiveis.length) throw new Error('Sem transportadoras disponíveis');
+    var barato = disponiveis.reduce(function(a,b){ return parseFloat(a.price)<parseFloat(b.price)?a:b; });
+    return gerarEtiquetaComServico(idx, barato.id);
+  })
+  .catch(function(e){ statusEl.innerHTML = '<span style="color:#e74c3c">Erro: '+e+'</span>'; });
+}
+
+function gerarEtiquetaComServico(idx, serviceId) {
+  var p = _expedicaoPedidos[idx];
+  var statusEl = document.getElementById('exp-status-'+idx);
+  statusEl.innerHTML = '<span style="color:#f39c12">🔄 Gerando etiqueta...</span>';
+  return fetch('/api/expedicao/gerar-etiqueta', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({service_id: parseInt(serviceId), pedido: p})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    if (d.erro) {
+      var msg = d.erro;
+      try { var inner = JSON.parse(msg.match(/\{.*\}/s)[0]); msg = inner.error || inner.message || msg; } catch(e){}
+      if (msg.indexOf('saldo') !== -1 || msg.indexOf('insuficiente') !== -1) {
+        statusEl.innerHTML = '<span style="color:#f39c12">💰 Saldo insuficiente no Melhor Envio — <a href="https://melhorenvio.com.br/painel/financeiro" target="_blank" style="color:#3b82f6">Adicionar saldo →</a></span>';
+      } else {
+        statusEl.innerHTML = '<span style="color:#e74c3c">❌ '+msg.substring(0,100)+'</span>';
+      }
+      return;
+    }
+    // Atualizar dados ME em memória
+    var p = _expedicaoPedidos[idx];
+    _enviosME[String(p.numero)] = {
+      me_order_id: d.order_id, tracking_code: d.tracking_code||'',
+      transportadora: d.transportadora||'', print_url: d.print_url||'',
+      gerado_em: new Date().toLocaleString('pt-BR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'})
+    };
+    // Atualizar linha sem reload
+    var rastreioEl = document.getElementById('exp-rastreio-'+idx);
+    if(rastreioEl){
+      rastreioEl.innerHTML = d.tracking_code
+        ? '<a href="https://melhorrastreio.com.br/rastreio/'+d.tracking_code+'" target="_blank" style="color:#3b82f6;font-weight:700;font-size:.78rem;text-decoration:none;background:#0d1e35;padding:3px 8px;border-radius:4px;border:1px solid #1e3a5f">'+d.tracking_code+'</a>'
+        : '<span style="color:#f59e0b;font-size:.75rem">⏳ Aguardando</span>';
+    }
+    statusEl.innerHTML = '<span style="color:#4ade80;font-size:.72rem">✅ '+(d.transportadora||'Gerado')+'</span>';
+    var row = document.getElementById('exp-row-'+idx);
+    if(row) row.style.background='#0a1a10';
+    var acoesEl = document.getElementById('exp-acoes-'+idx);
+    if(acoesEl){
+      var printBtn = d.print_url
+        ? '<a href="'+d.print_url+'" target="_blank" style="background:#1a4731;color:#27ae60;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:.75rem;text-decoration:none;display:inline-block;margin-right:3px">🖨 Imprimir</a>'
+        : '<button onclick="reimprimirEtiqueta(\''+d.order_id+'\','+idx+')" style="background:#1a4731;color:#27ae60;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:.75rem;margin-right:3px">🖨 Imprimir</button>';
+      var wppBtnGen = d.tracking_code && p.telefone
+        ? '<button onclick="enviarRastreioWpp(\''+p.telefone+'\',\''+d.tracking_code+'\',\''+p.cliente+'\')" style="background:#14291a;border:1px solid #25d36660;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:.75rem;margin-right:3px" title="Enviar rastreio via WhatsApp"><span class="wpp-icon" style="width:15px;height:15px;margin:0"></span></button>'
+        : '';
+      acoesEl.innerHTML = printBtn + wppBtnGen
+        +'<button onclick="cancelarEnvioME(\''+d.order_id+'\',\''+p.numero+'\','+idx+')" style="background:#2d0a0a;color:#f87171;border:1px solid #7f1d1d;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:.72rem" title="Cancelar envio ME">✕ Cancelar envio</button>';
+      // recém gerado — ainda pode cancelar
+    }
+  })
+  .catch(function(e){ statusEl.innerHTML = '<span style="color:#e74c3c">Erro: '+e+'</span>'; });
+}
+
+function despacharTodas() {
+  var statusGeral = document.getElementById('expedicao-status');
+  if (!_expedicaoPedidos.length) { statusGeral.textContent = 'Nenhum pedido para despachar.'; return; }
+  if (!confirm('Gerar etiquetas para TODOS os '+_expedicaoPedidos.length+' pedidos usando o frete mais barato?\n\nIsso usará saldo do Melhor Envio.')) return;
+  statusGeral.innerHTML = '<span style="color:#f39c12">🔄 Gerando todas as etiquetas... aguarde.</span>';
+  fetch('/api/expedicao/despachar-todas', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'})
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      var res = d.resultados || [];
+      var ok  = res.filter(function(r){ return r.ok; }).length;
+      var erros = res.filter(function(r){ return !r.ok; });
+      var html = '<span style="color:#27ae60">✅ '+ok+' etiqueta(s) gerada(s)</span>';
+      if (erros.length) html += ' <span style="color:#e74c3c">| '+erros.length+' erro(s)</span>';
+      statusGeral.innerHTML = html;
+
+      // Links de impressão
+      var links = res.filter(function(r){ return r.ok && r.print_url; });
+      if (links.length) {
+        var linksHtml = links.map(function(r){
+          return '<a href="'+r.print_url+'" target="_blank" style="color:#3b82f6;display:block;margin:4px 0;font-size:.8rem">🖨️ Pedido #'+r.pedido+' — '+r.transportadora+' R$'+r.preco+'</a>';
+        }).join('');
+        document.getElementById('expedicao-links').innerHTML = '<div style="background:#1a1d2e;border:1px solid #2d3047;border-radius:8px;padding:16px;margin-top:12px">'+linksHtml+'</div>';
+      }
+    })
+    .catch(function(e){ statusGeral.innerHTML = '<span style="color:#e74c3c">Erro: '+e+'</span>'; });
 }
 
 function carregarMetaResumo() {

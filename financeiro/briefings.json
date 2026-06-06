@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "id": "78515ebc-59cd-40b4-81a6-10620a922d82",
+    "criado_em": "2026-06-05T12:57:45.118863",
+    "tipo": "copy",
+    "pilar": "Prova Social",
+    "tema_livre": "teste",
+    "canal_destino": "Instagram Feed",
+    "briefing": "🔍 Todo dia às 2h da tarde meu cérebro simplesmente desliga. Mas depois de 30 dias testando nossos suplementos cognitivos, a diferença é clara! 🚀 Veja o que a nossa comunidade tem a dizer e junte-se a nós na busca por um foco inabalável. Garanta o seu hoje!\n\n💡 Café não resolve mais — descobri o motivo. Após um mês de uso, notei que minha produtividade foi lá em cima! 📈 Os depoimentos são incríveis e mostram que não estou sozinho nessa. Não perca a chance de transformar seu desempenho. Experimente por 30 dias!\n\n⚡️ 30 dias testando e o que aconteceu me surpreendeu! A energia que parecia perdida agora está de volta, com a ajuda dos nossos suplementos. Não fique para trás, venha fazer parte de uma nova era de produtividade! Ver mais depoimentos e inspire-se.",
+    "copy_variacoes": [
+      "🔍 Todo dia às 2h da tarde meu cérebro simplesmente desliga. Mas depois de 30 dias testando nossos suplementos cognitivos, a diferença é clara! 🚀 Veja o que a nossa comunidade tem a dizer e junte-se a nós na busca por um foco inabalável. Garanta o seu hoje!",
+      "💡 Café não resolve mais — descobri o motivo. Após um mês de uso, notei que minha produtividade foi lá em cima! 📈 Os depoimentos são incríveis e mostram que não estou sozinho nessa. Não perca a chance de transformar seu desempenho. Experimente por 30 dias!",
+      "⚡️ 30 dias testando e o que aconteceu me surpreendeu! A energia que parecia perdida agora está de volta, com a ajuda dos nossos suplementos. Não fique para trás, venha fazer parte de uma nova era de produtividade! Ver mais depoimentos e inspire-se."
+    ],
+    "status": "rascunho"
+  }
+]

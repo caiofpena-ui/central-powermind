@@ -1164,7 +1164,14 @@ function renderTable(creators){
         abrirModalPrimeiraMsgSeletor(cr.nome || cr.username, tel);
       }
     }; })(c));
-    btnWrap.appendChild(bVer); btnWrap.appendChild(bEdit); btnWrap.appendChild(bDel); btnWrap.appendChild(bContrato); btnWrap.appendChild(bWhats); btnWrap.appendChild(bChat);
+    var bAfiliada = document.createElement('button');
+    bAfiliada.textContent = c.afiliada_ativa ? '✅ Afiliada' : '⭐ Afiliada';
+    bAfiliada.title = c.afiliada_ativa ? 'Afiliada ativa' : 'Cadastrar como afiliada';
+    bAfiliada.style.cssText = 'background:'+(c.afiliada_ativa?'#052e16':'#1e1040')+';border:1px solid '+(c.afiliada_ativa?'#16a34a':'#7c3aed')+';color:'+(c.afiliada_ativa?'#4ade80':'#a78bfa')+';padding:5px 10px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600;transition:.2s';
+    if(!c.afiliada_ativa) {
+      bAfiliada.addEventListener('click', (function(cr){ return function(){ gerarConviteAfiliada(cr); }; })(c));
+    }
+    btnWrap.appendChild(bVer); btnWrap.appendChild(bEdit); btnWrap.appendChild(bDel); btnWrap.appendChild(bContrato); btnWrap.appendChild(bWhats); btnWrap.appendChild(bAfiliada); btnWrap.appendChild(bChat);
     tdAcoes.appendChild(btnWrap);
 
     [tdCreator,tdTier,tdSeg,tdScore,tdComp,tdNicho,tdStatus,tdAcoes].forEach(function(td){tr.appendChild(td);});
@@ -2057,6 +2064,37 @@ function enviarContratoWhatsApp(username, telefone){
   }
 }
 
+// ── Convite de Afiliada ─────────────────────────────────────────────────────
+async function gerarConviteAfiliada(creator) {
+  try {
+    var r = await fetch('/api/admin/gerar-convite-afiliada?username=' + encodeURIComponent(creator.username));
+    var d = await r.json();
+    if(!d.ok){ alert('Erro: ' + (d.erro||'Falha ao gerar link')); return; }
+    var link = d.link;
+    var nome = creator.nome || creator.username;
+    var tel = resolverWhatsApp(creator);
+    var msg = 'Oi ' + nome + '! 👋\n\nTudo bem? Aqui é a Julia da PowerMind!\n\n'
+      + 'Ficamos com vontade de te convidar para o nosso programa de afiliadas. '
+      + 'É super simples — você divulga com seu cupom exclusivo e ganha comissão em cada venda. 💜\n\n'
+      + 'Para começar, preencha seus dados rapidinho nesse link:\n'
+      + link + '\n\n'
+      + 'Qualquer dúvida é só chamar!\n— Julia, PowerMind';
+    if(tel){
+      var num = tel.replace(/\D/g,'');
+      if(num.length <= 11) num = '55' + num;
+      window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+    } else {
+      navigator.clipboard.writeText(msg).then(function(){
+        alert('Telefone não cadastrado. Mensagem copiada para a área de transferência!');
+      }).catch(function(){
+        prompt('Copie o link do convite:', link);
+      });
+    }
+  } catch(e) {
+    alert('Erro ao gerar convite: ' + e.message);
+  }
+}
+
 // ── Chat de Scripts
 var chatHistory = [];
 var scriptCreatorSelecionado = null;
@@ -2860,9 +2898,18 @@ function sincronizarTotalPosts(){
   var r = parseInt(document.getElementById('f-acordo-qtd-reels').value)||0;
   var s = parseInt(document.getElementById('f-acordo-qtd-stories').value)||0;
   var f = parseInt(document.getElementById('f-acordo-qtd-feed').value)||0;
-  var total = r + s + f;
-  document.getElementById('f-acordo-total-display').textContent = total;
-  document.getElementById('f-acordo-total-posts').value = total;
+
+  var freqR = document.getElementById('f-acordo-freq-reels').value;
+  var freqS = document.getElementById('f-acordo-freq-stories').value;
+  var freqF = document.getElementById('f-acordo-freq-feed').value;
+
+  // Multiplicadores mensais por frequência
+  var mult = { diario: 30, semanal: 4, mensal: 1, total: 1 };
+
+  var totalMes = (r * (mult[freqR]||1)) + (s * (mult[freqS]||1)) + (f * (mult[freqF]||1));
+
+  document.getElementById('f-acordo-total-display').textContent = totalMes;
+  document.getElementById('f-acordo-total-posts').value = totalMes;
 
   // Marcar checkboxes de tipo ocultos conforme qtds
   document.getElementById('chk-reels').checked   = r > 0;
@@ -3490,16 +3537,32 @@ function abrirModalPrimeiraMsgSeletor(nome, whatsapp){
   };
 }
 
+var _pcNomeAtual = '';
+
+function selecionarScriptPC(chave){
+  var template = SCRIPTS_PC[chave];
+  if(!template) return;
+  var texto = template.replace(/\[Nome\]/g, _pcNomeAtual || 'Creator');
+  document.getElementById('pc-modal-texto').value = texto;
+  // Destaca botão ativo
+  document.querySelectorAll('#pc-script-btns button').forEach(function(b){
+    b.style.opacity = '0.5';
+  });
+  event.target.style.opacity = '1';
+}
+
 function abrirModalPrimeiraMsg(nome, whatsapp, genero, iniciativa){
+  _pcNomeAtual = nome || 'Creator';
   var chave = genero + '|' + iniciativa;
   var template = SCRIPTS_PC[chave];
   if(!template){
-    alert('Script não encontrado para ' + genero + ' / ' + iniciativa);
-    return;
+    // Abre modal mesmo sem script exato, deixa textarea vazio para escolher
+    document.getElementById('pc-modal-texto').value = '';
+    document.querySelectorAll('#pc-script-btns button').forEach(function(b){ b.style.opacity='1'; });
+  } else {
+    var texto = template.replace(/\[Nome\]/g, _pcNomeAtual);
+    document.getElementById('pc-modal-texto').value = texto;
   }
-
-  var texto = template.replace(/\[Nome\]/g, nome || 'Creator');
-  document.getElementById('pc-modal-texto').value = texto;
 
   var num = (whatsapp || '').replace(/\D/g,'');
   if(num.length <= 11) num = '55' + num;
@@ -3650,10 +3713,31 @@ async function abrirModalAtivarAfiliada() {
   document.getElementById('modal-ativar-afiliada').style.display = 'flex';
 }
 
-function sugerirCupom() {
+async function sugerirCupom() {
   var select = document.getElementById('af-select-creator');
   var username = select.value;
   if (!username) return;
+
+  // Busca dados do convite preenchido pela creator
+  try {
+    var r = await fetch('/api/admin/convites-afiliada');
+    var convites = await r.json();
+    var convite = Object.values(convites).find(function(c){
+      return c.username === username && c.status === 'preenchido';
+    });
+    if (convite && convite.dados) {
+      document.getElementById('af-email').value = convite.dados.email || '';
+      document.getElementById('af-pix-chave').value = convite.dados.pix_chave || '';
+      document.getElementById('af-pix-tipo').value = convite.dados.pix_tipo || 'cpf';
+      // Destaca os campos preenchidos automaticamente
+      ['af-email','af-pix-chave','af-pix-tipo'].forEach(function(id){
+        var el = document.getElementById(id);
+        el.style.borderColor = '#7c3aed';
+        el.title = 'Preenchido pela creator';
+      });
+    }
+  } catch(e) {}
+
 
   // Cupom: 3 letras do primeiro nome + "." + inicial do sobrenome + "10"
   // Ex: Priscila de Almeida → PRI.A10  (fixo, nunca recebe número)
@@ -3841,7 +3925,13 @@ async function resetSenhaAfiliada(username, nome, wpp) {
       <h3 style="color:#f1f5f9;margin:0;font-size:1rem">Primeira Mensagem — WhatsApp</h3>
       <button onclick="fecharModalPC()" style="background:none;border:none;color:#94a3b8;font-size:1.3rem;cursor:pointer">✕</button>
     </div>
-    <p style="color:#94a3b8;font-size:.85rem;margin:0">Revise e edite o texto abaixo antes de enviar:</p>
+    <p style="color:#94a3b8;font-size:.85rem;margin:0">Escolha o script ou edite o texto antes de enviar:</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px" id="pc-script-btns">
+      <button onclick="selecionarScriptPC('Mulher|nos_procuramos')" style="padding:6px 12px;background:#1e1040;border:1px solid #7c3aed;color:#a78bfa;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600">👩 Mulher · Nós procuramos</button>
+      <button onclick="selecionarScriptPC('Mulher|nos_procurou')" style="padding:6px 12px;background:#1e1040;border:1px solid #7c3aed;color:#a78bfa;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600">👩 Mulher · Ela procurou</button>
+      <button onclick="selecionarScriptPC('Homem|nos_procuramos')" style="padding:6px 12px;background:#0f2040;border:1px solid #3b82f6;color:#93c5fd;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600">👨 Homem · Nós procuramos</button>
+      <button onclick="selecionarScriptPC('Homem|nos_procurou')" style="padding:6px 12px;background:#0f2040;border:1px solid #3b82f6;color:#93c5fd;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600">👨 Homem · Ele procurou</button>
+    </div>
     <textarea id="pc-modal-texto" rows="14" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#f1f5f9;padding:12px;font-size:.85rem;resize:vertical;line-height:1.6;box-sizing:border-box"></textarea>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button onclick="fecharModalPC()" style="padding:10px 20px;background:#334155;border:none;border-radius:8px;color:#f1f5f9;cursor:pointer;font-size:.9rem">Fechar</button>
