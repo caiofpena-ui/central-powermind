@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PowerMind">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="manifest" href="/manifest-afiliada.json">
 <title>PowerMind · Portal de Afiliadas</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -396,6 +401,63 @@ tbody td {
 </style>
 </head>
 <body>
+<script>
+// ── Service Worker + Web Push ──────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw-afiliada.js').catch(() => {});
+}
+
+var _pushToken = null;
+
+async function registrarPush(token) {
+  _pushToken = token;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  var jaAceitou = localStorage.getItem('pm_push_aceito');
+  if (Notification.permission === 'granted') {
+    await _fazerSubscribePush(token);
+  } else if (Notification.permission === 'default' && !jaAceitou) {
+    document.getElementById('banner-notif').style.display = 'flex';
+  }
+  // se 'denied' ou já aceitou antes, não mostra nada
+}
+
+async function ativarNotificacoes() {
+  document.getElementById('banner-notif').style.display = 'none';
+  localStorage.setItem('pm_push_aceito', '1');
+  await _fazerSubscribePush(_pushToken);
+}
+
+async function _fazerSubscribePush(token) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const res = await fetch('/api/afiliada/push-vapid-key');
+    const { publicKey } = await res.json();
+    if (!publicKey) return;
+
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return;
+
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: _urlBase64ToUint8Array(publicKey)
+    });
+
+    await fetch('/api/afiliada/push-subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ subscription: sub.toJSON() })
+    });
+  } catch(e) { console.error('Push error', e); }
+}
+
+function _urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+</script>
 
 <!-- TELA LOGIN -->
 <div id="tela-login">
@@ -439,6 +501,14 @@ tbody td {
       <div class="data" id="data-hoje"></div>
     </div>
 
+    <div id="banner-notif" style="display:none;background:#7c3aed;color:#fff;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="ativarNotificacoes()">
+      <span style="font-size:22px">🔔</span>
+      <div>
+        <div style="font-weight:700;font-size:14px">Ativar notificações de vendas</div>
+        <div style="font-size:12px;opacity:.85">Toque aqui para receber alertas quando chegar um pedido</div>
+      </div>
+    </div>
+
     <div class="cupom-card">
       <div class="cupom-row">
         <div class="cupom-section">
@@ -475,6 +545,12 @@ tbody td {
 
     <div class="section">
       <div class="section-title">Pedidos</div>
+      <!-- Abas Gerados / Pagos -->
+      <div style="display:flex;gap:0;margin-bottom:1rem;border-bottom:2px solid #1e293b">
+        <button id="tab-gerados" onclick="mudarAba('gerados')" style="padding:.6rem 1.25rem;background:none;border:none;border-bottom:2px solid #7c3aed;margin-bottom:-2px;color:#a78bfa;font-weight:600;cursor:pointer;font-size:.9rem">Gerados</button>
+        <button id="tab-pagos" onclick="mudarAba('pagos')" style="padding:.6rem 1.25rem;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:#64748b;font-weight:600;cursor:pointer;font-size:.9rem">Pagos ✅</button>
+      </div>
+      <!-- Sub-filtros de período -->
       <div class="filtros">
         <button class="filtro-btn ativo" onclick="filtrarPedidos('mes', this)">Este mês</button>
         <button class="filtro-btn" onclick="filtrarPedidos('30d', this)">30 dias</button>
@@ -552,6 +628,7 @@ window.onload = function() {
     if (token && Date.now() < exp) {
         mostrarDashboard();
         carregarDashboard(token);
+        registrarPush(token);
     }
 };
 
@@ -583,6 +660,7 @@ async function fazerLogin() {
         localStorage.setItem(TOKEN_EXP_KEY, Date.now() + TOKEN_TTL);
         mostrarDashboard();
         carregarDashboard(data.token);
+        registrarPush(data.token);
     } catch(e) {
         errEl.textContent = 'Erro de conexão';
         errEl.style.display = 'block';
@@ -636,14 +714,43 @@ function renderizarDashboard(data) {
     renderPagamentos(pagamentos);
 }
 
+const STATUS_PAGOS = new Set([4, 6, 8]); // aprovado, entregue, enviado
+var _abaAtual = 'gerados';
+var _filtroAtual = 'mes';
+
+function mudarAba(aba) {
+    _abaAtual = aba;
+    const tabG = document.getElementById('tab-gerados');
+    const tabP = document.getElementById('tab-pagos');
+    if (aba === 'gerados') {
+        tabG.style.borderBottomColor = '#7c3aed'; tabG.style.color = '#a78bfa';
+        tabP.style.borderBottomColor = 'transparent'; tabP.style.color = '#64748b';
+    } else {
+        tabP.style.borderBottomColor = '#34d399'; tabP.style.color = '#34d399';
+        tabG.style.borderBottomColor = 'transparent'; tabG.style.color = '#64748b';
+    }
+    if (dadosCache) renderPedidos(dadosCache.pedidos, _filtroAtual);
+}
+
+function filtrarPedidos(filtro, btn) {
+    _filtroAtual = filtro;
+    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('ativo'));
+    if (btn) btn.classList.add('ativo');
+    if (dadosCache) renderPedidos(dadosCache.pedidos, filtro);
+}
+
 function renderPedidos(pedidos, filtro) {
     const hoje = new Date();
     const mesAtual = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0');
     const trintaDias = new Date(hoje - 30*24*60*60*1000).toISOString().slice(0,10);
 
-    let lista = pedidos;
-    if (filtro === 'mes') lista = pedidos.filter(p => p.data.startsWith(mesAtual));
-    else if (filtro === '30d') lista = pedidos.filter(p => p.data >= trintaDias);
+    // Filtra pela aba (gerados = todos exceto cancelados; pagos = só status_id 4/6/8)
+    let lista = _abaAtual === 'pagos'
+        ? pedidos.filter(p => STATUS_PAGOS.has(p.status_id))
+        : pedidos; // gerados = todos (já vêm sem cancelados do server)
+
+    if (filtro === 'mes') lista = lista.filter(p => p.data.startsWith(mesAtual));
+    else if (filtro === '30d') lista = lista.filter(p => p.data >= trintaDias);
 
     const tbody = document.getElementById('pedidos-tbody');
     tbody.textContent = '';
@@ -713,27 +820,31 @@ function renderPagamentos(pagamentos) {
     });
 }
 
-function filtrarPedidos(filtro, btn) {
-    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('ativo'));
-    if (btn) btn.classList.add('ativo');
-    if (dadosCache) renderPedidos(dadosCache.pedidos, filtro);
-}
-
 function _copiar(txt, btnId) {
     if (!txt || txt === '—') return;
     const btn = document.getElementById(btnId);
     const orig = btn.textContent;
     const done = () => { btn.textContent = 'Copiado!'; setTimeout(() => btn.textContent = orig, 1500); };
-    navigator.clipboard.writeText(txt).then(done).catch(() => {
-        const ta = document.createElement('textarea');
-        ta.value = txt;
-        ta.style.cssText = 'position:fixed;opacity:0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        done();
-    });
+    const fallback = () => {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = txt;
+            ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            done();
+        } catch(e) {
+            prompt('Copie o texto abaixo:', txt);
+        }
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(txt).then(done).catch(fallback);
+    } else {
+        fallback();
+    }
 }
 
 function copiarCupom() { _copiar(_cupomValue, 'btn-copiar-cupom'); }

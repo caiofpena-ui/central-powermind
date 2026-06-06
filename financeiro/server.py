@@ -173,10 +173,33 @@ def save_comissoes(data):
     with open(COMISSOES_FILE, "w") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-def hash_senha(senha):
-    return hashlib.sha256(senha.encode()).hexdigest()
+def hash_senha(senha, salt=None):
+    """Hash SHA-256 com salt. Se salt=None, gera um novo (para criar senha).
+    Retorna 'salt$hash' para armazenamento."""
+    if salt is None:
+        salt = secrets.token_hex(16)
+    h = hashlib.sha256((salt + senha).encode()).hexdigest()
+    return f"{salt}${h}"
 
-_tokens = {}  # {token: username}
+def verificar_senha(senha, stored):
+    """Verifica senha contra hash armazenado. Suporta formato antigo (sem salt)."""
+    if "$" in stored:
+        salt, _ = stored.split("$", 1)
+        return hash_senha(senha, salt) == stored
+    # Formato legado sem salt — aceita e fará upgrade no próximo login
+    return hashlib.sha256(senha.encode()).hexdigest() == stored
+
+_TOKENS_FILE = os.path.join(os.path.dirname(__file__), "afiliada_tokens.json")
+
+def _load_tokens():
+    try:
+        with open(_TOKENS_FILE) as f: return json.load(f)
+    except: return {}
+
+def _save_tokens(t):
+    with open(_TOKENS_FILE, "w") as f: json.dump(t, f)
+
+_tokens = _load_tokens()
 
 def validar_token_afiliada(token):
     return _tokens.get(token)
@@ -184,17 +207,79 @@ def validar_token_afiliada(token):
 def criar_token_afiliada(username):
     token = secrets.token_hex(32)
     _tokens[token] = username
+    _save_tokens(_tokens)
     return token
 
 def revogar_token_afiliada(token):
     _tokens.pop(token, None)
+    _save_tokens(_tokens)
 
 def get_token_from_request(headers):
     auth = headers.get("Authorization", "")
     return auth[7:] if auth.startswith("Bearer ") else ""
 
 _cache_cupom = {}
-CACHE_TTL = 1800  # 30 min
+CACHE_TTL = 120  # 2 min
+
+# ── Web Push (notificações afiliadas) ──────────────────────────────────────
+_PUSH_SUBS_FILE = os.path.join(os.path.dirname(__file__), "..", "push_subscriptions.json")
+
+def load_push_subs():
+    try:
+        with open(_PUSH_SUBS_FILE) as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_push_subs(data):
+    with open(_PUSH_SUBS_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+def send_push_notification(username, title, body, url="/afiliada"):
+    env = load_env()
+    pub_key  = env.get("VAPID_PUBLIC_KEY", "")
+    priv_key = env.get("VAPID_PRIVATE_KEY", "")
+    if not pub_key or not priv_key:
+        return
+    subs = load_push_subs()
+    user_subs = subs.get(username, [])
+    if not user_subs:
+        return
+    try:
+        from pywebpush import webpush, WebPushException
+        import base64, json as _json
+        payload = _json.dumps({"title": title, "body": body, "url": url})
+        dead = []
+        for sub in user_subs:
+            try:
+                webpush(
+                    subscription_info=sub,
+                    data=payload,
+                    vapid_private_key=priv_key,
+                    vapid_claims={"sub": "mailto:contato@powermindbr.com.br"}
+                )
+            except Exception as e:
+                if "410" in str(e) or "404" in str(e):
+                    dead.append(sub)
+        if dead:
+            subs[username] = [s for s in user_subs if s not in dead]
+            save_push_subs(subs)
+    except Exception as e:
+        pass
+
+def _extrair_promocode(o):
+    """Extrai o código do promocode de um pedido Yampi. Retorna string vazia se não houver."""
+    pc_raw = o.get("promocode") or ""
+    if isinstance(pc_raw, dict):
+        inner = pc_raw.get("data") or {}
+        if isinstance(inner, dict):
+            return (inner.get("code") or "").upper()
+        return ""
+    return str(pc_raw).upper()
+
+def _extrair_utm(o):
+    """Extrai utm_campaign de um pedido Yampi (usado para rastreamento de afiliados)."""
+    return str(o.get("utm_campaign") or "").upper()
 
 def get_pedidos_por_cupom(cupom, token_yampi, secret_yampi):
     now = time.time()
@@ -203,40 +288,46 @@ def get_pedidos_por_cupom(cupom, token_yampi, secret_yampi):
         if now - ts < CACHE_TTL: return data
     pedidos = []
     cupom_upper = cupom.upper()
+    vistos = set()
     for page in range(1, 50):
         d = yampi_get("orders", {
             "page": page, "limit": 50,
-            "include": "customer,items",
-            "filter[promocode]": cupom_upper,
+            "include": "customer,items,promocode",
         }, YAMPI_ALIAS, token_yampi, secret_yampi)
         rows = d.get("data", [])
         if not rows: break
         for o in rows:
-            pc_raw = o.get("promocode") or ""
-            if isinstance(pc_raw, dict): pc_raw = pc_raw.get("code","") or ""
-            pc = pc_raw.upper()
-            if pc != cupom_upper: continue
+            # Rastreia por promocode OU utm_campaign
+            pc = _extrair_promocode(o)
+            utm = _extrair_utm(o)
+            if pc != cupom_upper and utm != cupom_upper:
+                continue
+            numero = o.get("number", "")
+            if numero in vistos: continue
+            vistos.add(numero)
             sid = o.get("status_id", 0)
-            if sid in (7, 15): continue
+            if sid in (7, 15): continue  # cancelado
             created_raw = o.get("created_at", "")
-            if isinstance(created_raw, dict): created_raw = created_raw.get("date","")
+            if isinstance(created_raw, dict): created_raw = created_raw.get("date", "")
             created = created_raw[:10] if created_raw else ""
             valor = float(o.get("value_total") or 0)
-            items = o.get("items",{}).get("data",[]) if isinstance(o.get("items"),dict) else []
+            items = o.get("items", {}).get("data", []) if isinstance(o.get("items"), dict) else []
             kit_parts = []
             for i in items:
-                qty = i.get("quantity",1)
-                sku_data = i.get("sku",{}).get("data",{}) if isinstance(i,dict) else {}
+                qty = i.get("quantity", 1)
+                sku_data = i.get("sku", {}).get("data", {}) if isinstance(i, dict) else {}
                 title = sku_data.get("title") or i.get("item_sku") or "?"
                 kit_parts.append(f"{qty}x {title}" if qty > 1 else str(title))
+            origem = "cupom" if pc == cupom_upper else "link"
             pedidos.append({
-                "numero": o.get("number",""),
+                "numero": numero,
                 "data": created,
                 "kit": ", ".join(kit_parts) or "-",
                 "valor": round(valor, 2),
                 "comissao": round(valor * 0.10, 2),
                 "status_id": sid,
-                "status": {3:"Aprovado",6:"Entregue",8:"Enviado"}.get(sid,"Processando"),
+                "status": {3: "Aprovado", 6: "Entregue", 8: "Enviado"}.get(sid, "Processando"),
+                "origem": origem,
             })
     _cache_cupom[cupom] = (now, pedidos)
     return pedidos
@@ -382,6 +473,40 @@ def load_env():
 # Pré-carrega o .env no boot para que os.environ.get() funcione nas rotas de IA
 load_env()
 
+# ── Sessões do dashboard (login principal) ─────────────────────────────────
+_dash_sessions = {}   # {token: {'exp': timestamp, 'user': username}}
+_dash_lock = _threading.Lock() if '_threading' in dir() else __import__('threading').Lock()
+
+def _criar_sessao_dashboard(username):
+    token = secrets.token_hex(32)
+    exp = time.time() + 8 * 3600  # 8 horas
+    with _dash_lock:
+        _dash_sessions[token] = {'exp': exp, 'user': username}
+    return token
+
+def _validar_sessao_dashboard(token):
+    if not token:
+        return None
+    with _dash_lock:
+        s = _dash_sessions.get(token)
+        if s and time.time() < s['exp']:
+            return s['user']
+        if s:
+            del _dash_sessions[token]
+    return None
+
+def _revogar_sessao_dashboard(token):
+    with _dash_lock:
+        _dash_sessions.pop(token, None)
+
+def _verificar_senha_dashboard(senha, stored):
+    """Verifica senha do dashboard (mesmo mecanismo das afiliadas)."""
+    if '$' in stored:
+        salt, _ = stored.split('$', 1)
+        h = __import__('hashlib').sha256((salt + senha).encode()).hexdigest()
+        return f"{salt}${h}" == stored
+    return False
+
 # ── Origens permitidas no CORS ─────────────────────────────────────────────
 _ALLOWED_ORIGINS = {
     "http://localhost:8080",
@@ -398,6 +523,21 @@ def _is_local(client_address):
     """Verifica se a requisição vem de localhost (acesso interno)."""
     ip = client_address[0] if client_address else ""
     return ip in ("127.0.0.1", "::1", "localhost")
+
+def _get_admin_key():
+    """Lê ADMIN_KEY do .env. Gera uma aleatória se não existir."""
+    env = load_env()
+    key = env.get("ADMIN_KEY", "").strip()
+    if not key:
+        key = secrets.token_hex(32)
+        # Salva no .env para persistir
+        try:
+            with open(ENV_FILE, "a") as f:
+                f.write(f"\nADMIN_KEY={key}\n")
+            os.environ["ADMIN_KEY"] = key
+        except Exception:
+            pass
+    return key
 
 # ── Rate limiting simples para login ──────────────────────────────────────
 import threading as _threading
@@ -1449,12 +1589,28 @@ def _handle_yampi_webhook(payload):
     })
     _save_yampi_pedidos(pedidos)
 
-    # Notificação no Mac
-    os.system(f'osascript -e \'display notification "Pedido #{numero} — R${valor:.2f} ({nome})" with title "💚 PowerMind — Venda!" sound name "Glass"\'')
+    # Notificação push para afiliados cujo cupom/utm estava no pedido
+    try:
+        pc = _extrair_promocode(order)
+        utm = _extrair_utm(order)
+        creators = load_creators()
+        for c in creators:
+            if not c.get("afiliada_ativa"): continue
+            cupom_af = (c.get("cupom") or "").upper()
+            if cupom_af and (pc == cupom_af or utm == cupom_af):
+                comissao = round(valor * (c.get("comissao_pct", 10) / 100), 2)
+                send_push_notification(
+                    c["username"],
+                    "Nova venda PowerMind!",
+                    f"Pedido #{numero} - R$ {valor:.2f} | Sua comissao: R$ {comissao:.2f}",
+                    "/afiliada"
+                )
+    except Exception as e:
+        print(f"[Webhook] Erro push afiliado: {e}")
 
     # Força atualização do cache do dashboard
     _cache["ts"] = 0
-    print(f"[Webhook Yampi] ✅ Pedido #{numero} R${valor} registrado — cache resetado")
+    print(f"[Webhook Yampi] Pedido #{numero} R${valor} registrado — cache resetado")
 
 # ── Cache de dados (atualiza a cada 2 min) ─────────────────────────────────
 _cache = {"data": None, "ts": 0}
@@ -1873,14 +2029,36 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _require_local(self):
-        """Retorna True se a requisição veio de localhost. Envia 403 caso contrário."""
-        if not _is_local(self.client_address):
-            self.send_response(403)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(json.dumps({"erro": "Acesso restrito"}).encode())
-            return False
-        return True
+        """Compatibilidade: aceita localhost OU admin key válida."""
+        return self._require_admin()
+
+    def _require_admin(self):
+        """Autentica via sessão dashboard (Bearer token) ou X-Admin-Key.
+        Em desenvolvimento (PRODUCTION nao definido), localhost também é aceito."""
+        env_vars = load_env()
+        production = env_vars.get("PRODUCTION", os.environ.get("PRODUCTION", "")).strip().lower() in ("1", "true", "yes")
+        # Em dev local: aceita localhost sem chave
+        if not production and _is_local(self.client_address):
+            return True
+        # Aceita sessão de dashboard válida (Bearer token)
+        bearer = get_token_from_request(self.headers)
+        if bearer and _validar_sessao_dashboard(bearer):
+            return True
+        # Aceita X-Admin-Key correto (compatibilidade)
+        provided = self.headers.get("X-Admin-Key", "")
+        if provided and provided == _get_admin_key():
+            return True
+        self.send_response(403)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.end_headers()
+        self.wfile.write(json.dumps({"erro": "Acesso restrito"}).encode())
+        return False
+
+    def _security_headers(self):
+        """Adiciona headers de segurança padrão em respostas HTML."""
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
 
     def do_GET(self):
         _path = self.path.split('?')[0]
@@ -1893,6 +2071,11 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+        elif _path == "/api/afiliada/push-vapid-key":
+            env = load_env()
+            self._json({"publicKey": env.get("VAPID_PUBLIC_KEY", "")})
+            return
+
         elif _path == "/api/afiliada/dados":
             token = get_token_from_request(self.headers)
             username = validar_token_afiliada(token)
@@ -1934,6 +2117,58 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type","application/json; charset=utf-8")
             self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
+            self.end_headers()
+            self.wfile.write(resp)
+            return
+
+        elif _path == "/api/admin/pending-cupom":
+            # GET: retorna cupom pendente para o bookmarklet ler
+            # POST: limpa o cupom pendente após criação
+            pending_file = os.path.join(os.path.dirname(__file__), ".yampi_pending.json")
+            pending = {}
+            if os.path.exists(pending_file):
+                try:
+                    pending = json.load(open(pending_file))
+                except: pass
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.end_headers()
+            self.wfile.write(json.dumps(pending, ensure_ascii=False).encode())
+            return
+
+        elif _path == "/api/admin/cupom-criado":
+            # Recebe callback do bookmarklet ou verifica se cupom foi criado
+            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            code = (params.get("code", [""])[0] or params.get("check", [""])[0]).upper()
+            ok_flag = params.get("ok", [""])[0]
+            promo_id = params.get("id", [""])[0]
+            # Armazena no arquivo temporário para polling
+            cb_file = os.path.join(os.path.dirname(__file__), ".yampi_cb.json")
+            if ok_flag == "1" and code:
+                cb_data = {}
+                try:
+                    cb_data = json.load(open(cb_file)) if os.path.exists(cb_file) else {}
+                except: pass
+                cb_data[code] = {"ok": True, "code": code, "id": promo_id, "ts": time.time()}
+                with open(cb_file, "w") as f: json.dump(cb_data, f)
+                resp = json.dumps({"ok": True, "recorded": True}).encode()
+            elif code:
+                cb_data = {}
+                try:
+                    cb_data = json.load(open(cb_file)) if os.path.exists(cb_file) else {}
+                except: pass
+                entry = cb_data.get(code)
+                if entry and (time.time() - entry.get("ts", 0)) < 300:
+                    resp = json.dumps(entry).encode()
+                else:
+                    resp = json.dumps({"ok": False, "code": code}).encode()
+            else:
+                resp = json.dumps({"ok": False}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(resp)
             return
@@ -1992,6 +2227,63 @@ class Handler(BaseHTTPRequestHandler):
                 return
             except FileNotFoundError:
                 self.send_response(404); self.end_headers(); return
+        elif self.path.split('?')[0] == "/yampi-autofill.user.js":
+            js_file = os.path.join(os.path.dirname(__file__), "yampi-autofill.user.js")
+            try:
+                with open(js_file, "rb") as f:
+                    body = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/javascript")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            except FileNotFoundError:
+                self.send_response(404); self.end_headers(); return
+
+        elif self.path.split('?')[0] == "/manifest-afiliada.json":
+            mf = os.path.join(os.path.dirname(__file__), "manifest-afiliada.json")
+            try:
+                with open(mf, "rb") as f: body = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/manifest+json")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            except FileNotFoundError:
+                self.send_response(404); self.end_headers(); return
+
+        elif self.path.split('?')[0] == "/sw-afiliada.js":
+            sw_file = os.path.join(os.path.dirname(__file__), "sw-afiliada.js")
+            try:
+                with open(sw_file, "rb") as f:
+                    body = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/javascript")
+                self.send_header("Service-Worker-Allowed", "/")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            except FileNotFoundError:
+                self.send_response(404); self.end_headers(); return
+
+        elif self.path.startswith("/static/"):
+            fname = self.path.split('?')[0].lstrip('/')
+            fpath = os.path.join(os.path.dirname(__file__), fname)
+            ext = fname.rsplit('.',1)[-1].lower()
+            mime = {'png':'image/png','jpg':'image/jpeg','jpeg':'image/jpeg','svg':'image/svg+xml','ico':'image/x-icon'}.get(ext,'application/octet-stream')
+            try:
+                with open(fpath,'rb') as f: body=f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', mime)
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            except FileNotFoundError:
+                self.send_response(404); self.end_headers(); return
+
         elif self.path.split('?')[0] == "/logo.png":
             logo_file = os.path.join(os.path.dirname(__file__), "logo.png")
             try:
@@ -2023,6 +2315,7 @@ class Handler(BaseHTTPRequestHandler):
                     body = f.read()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self._security_headers()
                 self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
                 self.end_headers()
                 self.wfile.write(body)
@@ -2034,6 +2327,7 @@ class Handler(BaseHTTPRequestHandler):
                 with open(AFILIADA_HTML_FILE, "rb") as f: body = f.read()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self._security_headers()
                 self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
                 self.end_headers()
                 self.wfile.write(body)
@@ -2047,6 +2341,7 @@ class Handler(BaseHTTPRequestHandler):
                     body = f.read()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self._security_headers()
                 self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
@@ -2060,6 +2355,7 @@ class Handler(BaseHTTPRequestHandler):
                     body = f.read()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self._security_headers()
                 self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
@@ -2073,6 +2369,7 @@ class Handler(BaseHTTPRequestHandler):
                     body = f.read()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self._security_headers()
                 self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
                 self.end_headers()
                 self.wfile.write(body)
@@ -2254,6 +2551,28 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 self.send_response(404); self.end_headers()
 
+        elif _path == "/login":
+            login_file = os.path.join(os.path.dirname(__file__), "login.html")
+            try:
+                with open(login_file, "rb") as f:
+                    body = f.read()
+            except FileNotFoundError:
+                body = b"<h1>Login page not found</h1>"
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self._security_headers()
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.end_headers()
+            self.wfile.write(body)
+
+        elif _path == "/api/auth/check":
+            token = get_token_from_request(self.headers)
+            user = _validar_sessao_dashboard(token)
+            if user:
+                self._json({"ok": True, "user": user})
+            else:
+                self._json({"ok": False}, status=401)
+
         elif _path in ("/", "/dashboard"):
             html_file = os.path.join(os.path.dirname(__file__), "dashboard.html")
             try:
@@ -2263,6 +2582,7 @@ class Handler(BaseHTTPRequestHandler):
                 body = DASHBOARD_HTML.encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self._security_headers()
             self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
             self.send_header("Pragma", "no-cache")
             self.end_headers()
@@ -2681,6 +3001,7 @@ class Handler(BaseHTTPRequestHandler):
                     content = f.read()
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self._security_headers()
                 self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
                 self.end_headers()
                 self.wfile.write(content.encode('utf-8'))
@@ -2716,7 +3037,35 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         _path = self.path.split('?')[0]
-        if _path == "/api/afiliada/login":
+
+        if _path == "/api/auth/login":
+            # Rate limiting: max 10 tentativas por IP por minuto
+            client_ip = self.client_address[0]
+            if _check_rate_limit(client_ip, max_attempts=10, window_seconds=60):
+                self._json({"erro": "Muitas tentativas. Aguarde 1 minuto."}, status=429)
+                return
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            usuario = (body.get("usuario") or "").strip().lower()
+            senha   = (body.get("senha") or "")
+            env     = load_env()
+            user_ok  = env.get("DASHBOARD_USER", "").strip().lower()
+            pass_hash = env.get("DASHBOARD_PASS_HASH", "")
+            if usuario and usuario == user_ok and _verificar_senha_dashboard(senha, pass_hash):
+                token = _criar_sessao_dashboard(usuario)
+                self._json({"token": token, "user": usuario})
+            else:
+                self._json({"erro": "Usuário ou senha inválidos."}, status=401)
+            return
+
+        elif _path == "/api/auth/logout":
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            _revogar_sessao_dashboard(body.get("token", ""))
+            self._json({"ok": True})
+            return
+
+        elif _path == "/api/afiliada/login":
             # Rate limiting: máx 10 tentativas por IP por minuto
             client_ip = self.client_address[0]
             if _check_rate_limit(client_ip, max_attempts=10, window_seconds=60):
@@ -2733,13 +3082,21 @@ class Handler(BaseHTTPRequestHandler):
             creator = next((c for c in creators
                             if c.get("email","").lower() == email
                             and c.get("afiliada_ativa")
-                            and c.get("senha_hash") == hash_senha(senha)), None)
+                            and verificar_senha(senha, c.get("senha_hash",""))), None)
             if not creator:
                 self.send_response(401)
                 self.send_header("Content-Type","application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"erro":"Email ou senha invalidos"}).encode())
                 return
+            # Upgrade automático de hash legado (sem salt) para novo formato com salt
+            if "$" not in creator.get("senha_hash",""):
+                all_c = load_creators()
+                for c in all_c:
+                    if c["username"] == creator["username"]:
+                        c["senha_hash"] = hash_senha(senha)
+                        break
+                save_creators(all_c)
             token = criar_token_afiliada(creator["username"])
             resp = json.dumps({"token":token,"username":creator["username"],
                                "nome":creator.get("nome",""),"cupom":creator.get("cupom",""),
@@ -2761,9 +3118,29 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(b'{"ok":true}')
             return
 
+        elif _path == "/api/afiliada/push-subscribe":
+            token = get_token_from_request(self.headers)
+            username = validar_token_afiliada(token)
+            if not username:
+                self._json({"erro": "Não autorizado"}, status=401); return
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            subscription = body.get("subscription")
+            if not subscription:
+                self._json({"erro": "Subscription inválida"}, status=400); return
+            subs = load_push_subs()
+            user_subs = subs.get(username, [])
+            # evita duplicatas pelo endpoint
+            endpoints = {s.get("endpoint") for s in user_subs}
+            if subscription.get("endpoint") not in endpoints:
+                user_subs.append(subscription)
+                subs[username] = user_subs
+                save_push_subs(subs)
+            self._json({"ok": True})
+            return
+
         elif _path == "/api/admin/pagar":
             if not self._require_local(): return
-            import uuid
             from datetime import date
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length) or b"{}")
@@ -2812,6 +3189,7 @@ class Handler(BaseHTTPRequestHandler):
             username  = body.get("username","")
             email     = (body.get("email","") or "").strip().lower()
             cupom     = (body.get("cupom","") or "").upper()
+            utm       = (body.get("utm","") or cupom).upper()
             pix_chave = body.get("pix_chave","")
             pix_tipo  = body.get("pix_tipo","cpf")
             if not all([username, email, cupom, pix_chave]):
@@ -2828,10 +3206,82 @@ class Handler(BaseHTTPRequestHandler):
             nova_senha = f"PM@{_date.today().year}"
             c.update({"afiliada_ativa": True, "email": email,
                        "senha_hash": hash_senha(nova_senha), "cupom": cupom,
-                       "link_afiliado": f"https://www.powermindbr.com.br/?cupom={cupom}",
+                       "link_afiliado": f"https://www.powermindbr.com.br/?cupom={cupom}&utm_campaign={utm}&utm_source=afiliado&utm_medium=link",
+                       "utm": utm,
                        "pix_chave": pix_chave, "pix_tipo": pix_tipo, "comissao_pct": 10})
             save_creators(creators)
+            # Salva cupom pendente para o bookmarklet criar na Yampi
+            nome_creator = c.get("nome", username).split()[0]
+            pending_file = os.path.join(os.path.dirname(__file__), ".yampi_pending.json")
+            with open(pending_file, "w") as _pf:
+                json.dump({"code": cupom, "description": f"Afiliada {nome_creator} - 10% desconto",
+                           "percentual": 10, "ts": time.time()}, _pf)
             resp = json.dumps({"ok": True, "senha_temporaria": nova_senha}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type","application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
+            self.end_headers()
+            self.wfile.write(resp)
+            return
+
+        elif _path == "/api/admin/desativar-afiliada":
+            if not self._require_local(): return
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            username = body.get("username", "")
+            creators = load_creators()
+            c = next((x for x in creators if x["username"] == username), None)
+            if not c:
+                self.send_response(404); self.end_headers(); return
+            for field in ["afiliada_ativa","email","senha_hash","cupom","utm","link_afiliado","pix_chave","pix_tipo","comissao_pct"]:
+                c.pop(field, None)
+            save_creators(creators)
+            resp = json.dumps({"ok": True}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type","application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")
+            self.end_headers()
+            self.wfile.write(resp)
+            return
+
+        elif _path == "/api/admin/criar-cupom-yampi":
+            if not self._require_local(): return
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            codigo    = (body.get("codigo","") or "").upper().strip()
+            descricao = body.get("descricao", f"Afiliada {codigo}")
+            percentual = int(body.get("percentual", 10))
+            if not codigo:
+                self.send_response(400)
+                self.send_header("Content-Type","application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"erro":"codigo obrigatorio"}).encode())
+                return
+            script_path = os.path.join(os.path.dirname(__file__), "..", "yampi_criar_cupom.py")
+            if not os.path.exists(script_path):
+                script_path = "/tmp/yampi_criar_cupom.py"
+            env_vars = load_env()
+            env = os.environ.copy()
+            env["YAMPI_EMAIL"]    = env_vars.get("YAMPI_EMAIL","")
+            env["YAMPI_PASSWORD"] = env_vars.get("YAMPI_PASSWORD","")
+            try:
+                result = subprocess.run(
+                    ["python3", script_path, codigo, descricao, str(percentual)],
+                    capture_output=True, text=True, timeout=90, env=env
+                )
+                output = result.stdout.strip()
+                if result.returncode == 0 and output:
+                    try:
+                        parsed = json.loads(output)
+                    except Exception:
+                        parsed = {"ok": True, "message": output}
+                else:
+                    parsed = {"ok": False, "message": result.stderr.strip() or output or "Falha ao executar script"}
+            except subprocess.TimeoutExpired:
+                parsed = {"ok": False, "message": "Timeout: script demorou mais de 90s"}
+            except Exception as ex:
+                parsed = {"ok": False, "message": str(ex)}
+            resp = json.dumps(parsed, ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type","application/json; charset=utf-8")
             self.send_header("Access-Control-Allow-Origin", _cors_origin(self.headers) or "http://localhost:8080")

@@ -1,0 +1,12 @@
+{
+  "@powermindbr_": [
+    {
+      "endpoint": "https://fcm.googleapis.com/fcm/send/eHQsje6gpmk:APA91bFRwMT4WVhdLCjrERVW5mfX0mzfM_MPS6dLO0Mu5l1B8bk3auGrBMorXeHh5pIu-7ViEH1sUGHCLIE_8MhOENM73DAE2zcgQxyhXHG2H7iR45EzOUwTYv-gMdVftz0ZL022nQsP",
+      "expirationTime": null,
+      "keys": {
+        "p256dh": "BOlNWlZOkzMCd5XzYWQbOqu8dsHVlsbtsgKk0sB_7JTKET6gBCTTktUIO8_ZuAHMXga_BUEwwnWB4sjsdVzSL_w",
+        "auth": "8-wIVNrLhPGvJPOjn9Qfpg"
+      }
+    }
+  ]
+}

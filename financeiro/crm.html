@@ -101,6 +101,15 @@ tr:hover td{background:#1e2130}
 .preview-badges{display:flex;flex-direction:column;gap:6px;align-items:flex-end;margin-left:auto}
 @media(max-width:900px){.charts-row{grid-template-columns:1fr}.container{padding:16px}.tabs{padding:0 16px;overflow-x:auto}.tab{padding:12px 14px;font-size:.75rem}}
 </style>
+<script>
+(function(){
+  var t=localStorage.getItem('pm_token'), exp=localStorage.getItem('pm_token_exp');
+  if(!t||!exp||Date.now()>=parseInt(exp)){
+    localStorage.removeItem('pm_token'); localStorage.removeItem('pm_token_exp');
+    window.location.replace('/login?next='+encodeURIComponent(window.location.pathname));
+  }
+})();
+</script>
 </head>
 <body>
 
@@ -3515,9 +3524,15 @@ var _creatorsAfiliadas = []; // cache dos creators nao-afiliados para uso no mod
 var _wppAfiliadaWpp = '';
 var _wppAfiliadaNome = '';
 
+function authHeaders(extra) {
+  var token = localStorage.getItem('pm_token') || '';
+  var h = Object.assign({'Authorization': 'Bearer ' + token}, extra || {});
+  return h;
+}
+
 async function carregarAfiliadas() {
   try {
-    var r = await fetch('/api/admin/afiliadas');
+    var r = await fetch('/api/admin/afiliadas', {headers: authHeaders()});
     _afiliadas = await r.json();
     renderAfiliadas(_afiliadas);
   } catch(e) { console.error('Erro afiliadas', e); }
@@ -3591,7 +3606,29 @@ function renderAfiliadas(lista) {
         + 'Qualquer duvida e so chamar aqui!';
       window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
     }; })(a);
-    acTd.appendChild(btnPagar); acTd.appendChild(btnReset); acTd.appendChild(linkPainel); acTd.appendChild(btnWpp);
+    var btnCupom = document.createElement('button');
+    btnCupom.textContent = '🎟️';
+    btnCupom.title = 'Criar cupom na Yampi';
+    btnCupom.style.cssText = 'background:#1e1040;color:#a78bfa;border:1px solid #7c3aed;border-radius:4px;padding:.25rem .5rem;cursor:pointer;font-size:.8rem;margin-left:.25rem';
+    (function(af){ btnCupom.onclick = function(){
+      _cupomYampiPendente = { cupom: af.cupom, nome: af.nome || af.username, email: af.email, senha: '' };
+      document.getElementById('ycupom-code').textContent = af.cupom;
+      document.getElementById('ycupom-desc').textContent = 'Afiliada ' + (af.nome||af.username).split(' ')[0] + ' — 10% desconto';
+      document.getElementById('modal-cupom-yampi').style.display = 'flex';
+      _criarCupomYampiApi(af.cupom, 'Afiliada ' + (af.nome||af.username).split(' ')[0] + ' - 10% desconto', 10);
+    }; })(a);
+    var btnExcluir = document.createElement('button');
+    btnExcluir.textContent = '🗑';
+    btnExcluir.title = 'Desativar afiliada';
+    btnExcluir.style.cssText = 'background:#1f0a0a;color:#f87171;border:1px solid #7f1d1d;border-radius:4px;padding:.25rem .5rem;cursor:pointer;font-size:.8rem;margin-left:.25rem';
+    (function(u, n){ btnExcluir.onclick = async function(){
+      if (!confirm('Desativar afiliada ' + (n||u) + '?\nO cupom e comissões serão removidos, mas o creator continua na lista.')) return;
+      try {
+        await fetch('/api/admin/desativar-afiliada', {method:'POST', headers:authHeaders({'Content-Type':'application/json'}), body:JSON.stringify({username:u})});
+        await carregarAfiliadas();
+      } catch(e) { alert('Erro ao desativar.'); }
+    }; })(a.username, a.nome);
+    acTd.appendChild(btnPagar); acTd.appendChild(btnReset); acTd.appendChild(linkPainel); acTd.appendChild(btnWpp); acTd.appendChild(btnCupom); acTd.appendChild(btnExcluir);
   });
 }
 
@@ -3617,14 +3654,35 @@ function sugerirCupom() {
   var select = document.getElementById('af-select-creator');
   var username = select.value;
   if (!username) return;
-  var opt = select.options[select.selectedIndex];
-  var nome = (opt.textContent || username).split(' ')[0].toUpperCase().replace(/[^A-Z]/g,'');
-  document.getElementById('af-cupom').value = nome.substring(0,8) + '10';
-  // Preencher WhatsApp automaticamente do cadastro do creator
+
+  // Cupom: 3 letras do primeiro nome + "." + inicial do sobrenome + "10"
+  // Ex: Priscila de Almeida → PRI.A10  (fixo, nunca recebe número)
+  // UTM:  sempre com sequencial único → PRI.A101, PRI.A102 ...
   var creator = _creatorsAfiliadas.find(function(c){ return c.username === username; });
+  var nomeCompleto = (creator && creator.nome) ? creator.nome : username;
+  var partes = nomeCompleto.trim().toUpperCase().replace(/[^A-Z ]/g,'').split(/\s+/);
+  var primeiro = (partes[0] || '').substring(0, 3);          // 3 primeiras letras
+  var inicialSegundo = partes[1] ? partes[1][0] : '';         // inicial do sobrenome
+  var cupomFinal = primeiro + '.' + inicialSegundo + '10';    // ex: PRI.A10
+
+  // UTM: base + próximo sequencial disponível entre todas as afiliadas
+  var utmsExistentes = _creatorsAfiliadas
+    .filter(function(c){ return c.utm; })
+    .map(function(c){ return c.utm.toUpperCase(); });
+  var utmBase = cupomFinal; // PRI.A10
+  var seq = 1;
+  while (utmsExistentes.indexOf(utmBase + seq) !== -1) seq++;
+  var utmFinal = utmBase + seq; // ex: PRI.A101, PRI.A102...
+
+  document.getElementById('af-cupom').value = cupomFinal;
+  // Guarda utm sugerida para usar ao salvar
+  _utmSugerida = utmFinal;
+
   var wpp = creator ? (creator.whatsapp || creator.telefone || '') : '';
   _wppAfiliadaWpp = wpp;
 }
+
+var _utmSugerida = '';
 
 async function salvarAfiliada() {
   var username = document.getElementById('af-select-creator').value;
@@ -3633,26 +3691,100 @@ async function salvarAfiliada() {
   var pix_chave = document.getElementById('af-pix-chave').value.trim();
   var pix_tipo = document.getElementById('af-pix-tipo').value;
   if (!username || !email || !cupom || !pix_chave) { alert('Preencha todos os campos'); return; }
+  var utm = _utmSugerida || cupom;
   var r = await fetch('/api/admin/ativar-afiliada', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({username: username, email: email, cupom: cupom, pix_chave: pix_chave, pix_tipo: pix_tipo})
+    headers: authHeaders({'Content-Type':'application/json'}),
+    body: JSON.stringify({username: username, email: email, cupom: cupom, utm: utm, pix_chave: pix_chave, pix_tipo: pix_tipo})
   });
   var data = await r.json();
   if (!r.ok) { alert(data.erro || 'Erro ao ativar'); return; }
   document.getElementById('modal-ativar-afiliada').style.display = 'none';
   var opt = document.getElementById('af-select-creator').options[document.getElementById('af-select-creator').selectedIndex];
   var nome = opt ? opt.textContent.trim() : username;
-  var msg = 'Ola ' + nome.split(' ')[0] + '! Tudo bem?\n\nSou a Julia da PowerMind! Ativamos o seu acesso como afiliada.\n\nSeus dados:\n- Link: https://www.powermindbr.com.br/?cupom=' + cupom + '\n- Cupom: ' + cupom + '\n- Email: ' + email + '\n- Senha: ' + data.senha_temporaria + '\n\nAcesse seu painel em: ' + BASE_URL + '/afiliada\n\nQualquer duvida e so chamar aqui!';
+  var msg = 'Ola ' + nome.split(' ')[0] + '! Tudo bem?\n\nSou a Julia da PowerMind! Ativamos o seu acesso como afiliada.\n\nSeus dados:\n- Link: https://www.powermindbr.com.br/?cupom=' + cupom + '&utm_campaign=' + utm + '&utm_source=afiliado&utm_medium=link\n- Cupom: ' + cupom + '\n- Email: ' + email + '\n- Senha: ' + data.senha_temporaria + '\n\nAcesse seu painel em: ' + BASE_URL + '/afiliada\n\nQualquer duvida e so chamar aqui!';
   document.getElementById('wpp-msg-afiliada').value = msg;
-  // Pega WhatsApp do cache de creators (já populado ao abrir o modal)
   if (!_wppAfiliadaWpp) {
     var cr = _creatorsAfiliadas.find(function(c){ return c.username === username; });
     _wppAfiliadaWpp = cr ? (cr.whatsapp || cr.telefone || '') : '';
   }
   _wppAfiliadaNome = nome;
-  document.getElementById('modal-acesso-wpp').style.display = 'flex';
+  // Cria cupom Yampi automaticamente via servidor local (Playwright no Mac)
+  _cupomYampiPendente = { cupom: cupom, nome: nome, email: email, senha: data.senha_temporaria };
+  document.getElementById('ycupom-code').textContent = cupom;
+  document.getElementById('ycupom-desc').textContent = 'Afiliada ' + nome.split(' ')[0] + ' — 10% desconto';
+  document.getElementById('modal-cupom-yampi').style.display = 'flex';
+  document.getElementById('ycupom-status').textContent = '⏳ Criando cupom na Yampi...';
+  document.getElementById('ycupom-btns').style.display = 'none';
   carregarAfiliadas();
+  // Cria cupom diretamente via API interna da Yampi (browser já está autenticado)
+  _criarCupomYampiApi(cupom, 'Afiliada ' + nome.split(' ')[0] + ' - 10% desconto', 10);
+}
+
+var _cupomYampiPendente = null;
+
+// Cria cupom na Yampi via bookmarklet
+// O server já salvou o cupom pendente em /api/admin/pending-cupom
+// O bookmarklet busca esse dado e preenche o Vue form automaticamente
+// Bookmarklet JS: lê params da URL da Yampi e preenche o Vue form
+// (sem fetch para localhost — funciona de HTTPS sem bloqueio de mixed content)
+var _BK_JS = '(function(){var p=new URLSearchParams(location.search),code=p.get("pm_code"),pct=parseInt(p.get("pm_pct")||"10"),desc=p.get("pm_desc")||("Afiliada "+code);if(!code){alert("Abra a Yampi pelo CRM PowerMind.");return;}if(!location.pathname.includes("/promocodes/create")){location.href="https://app.yampi.com.br/marketing/promocodes/create?pm_code="+encodeURIComponent(code)+"&pm_pct="+pct+"&pm_desc="+encodeURIComponent(desc);return;}var csrfEl=document.querySelector("meta[name=\'csrf-token\']");var csrf=csrfEl?csrfEl.getAttribute("content"):"";if(!csrf){alert("CSRF não encontrado. Recarregue a página.");return;}var banner=document.createElement("div");banner.style.cssText="position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#7c3aed;color:#fff;padding:10px 24px;border-radius:8px;font-weight:600;z-index:99999;font-size:14px";banner.textContent="\u26a1 PowerMind \u2014 criando cupom "+code+"...";document.body.appendChild(banner);fetch("/api/pricing/promocodes",{method:"POST",headers:{"Content-Type":"application/json","X-CSRF-TOKEN":csrf,"X-Requested-With":"XMLHttpRequest"},body:JSON.stringify({code:code.toUpperCase(),description:desc,discount_type:"p",value:pct,min_value:0,quantity:9999,start_at:"2026-01-01 00:00:00",end_at:"2099-12-31 23:59:59",active:true,free_shipment:true,once_per_customer:false,newsletter:false})}).then(function(r){return r.json();}).then(function(d){if(d&&d.data&&d.data.id){banner.style.background="#059669";banner.textContent="\u2705 Cupom "+code+" criado com frete gr\u00e1tis!";setTimeout(function(){window.location.href="/marketing/promocodes/"+d.data.id;},1500);}else{banner.style.background="#dc2626";banner.textContent="\u274c Erro: "+(d.message||JSON.stringify(d).substring(0,80));}}).catch(function(e){banner.style.background="#dc2626";banner.textContent="\u274c Erro: "+e.message;});})()';
+
+function _criarCupomYampiApi(codigo, descricao, percentual) {
+  var statusEl = document.getElementById('ycupom-status');
+  var btnsEl = document.getElementById('ycupom-btns');
+
+  // Configura o link do bookmarklet com o JS correto
+  var bkLink = document.getElementById('ycupom-bookmarklet-link');
+  if (bkLink) {
+    bkLink.href = 'javascript:' + _BK_JS;
+    bkLink.title = 'Arraste para a barra de favoritos do Chrome — use uma vez por ativação';
+  }
+
+  // Monta a URL mas NÃO abre automaticamente — usuário clica no botão
+  var yampiUrl = 'https://app.yampi.com.br/marketing/promocodes/create'
+    + '?pm_code=' + encodeURIComponent(codigo)
+    + '&pm_pct=' + (percentual || 10)
+    + '&pm_desc=' + encodeURIComponent(descricao);
+
+  statusEl.innerHTML = '1️⃣ Arraste o link <strong>PowerMind ⚡</strong> acima para a barra de favoritos (só precisa fazer uma vez).<br>'
+    + '2️⃣ Clique em <strong>"Abrir Yampi"</strong> abaixo.<br>'
+    + '3️⃣ Na página que abrir, clique no favorito <strong>"PowerMind ⚡"</strong> para criar o cupom automaticamente.';
+
+  btnsEl.innerHTML = '';
+  var btnAbrir = document.createElement('button');
+  btnAbrir.textContent = '🔗 Abrir Yampi';
+  btnAbrir.style.cssText = 'padding:.6rem 1.5rem;background:#7c3aed;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600';
+  btnAbrir.onclick = function(){ window.open(yampiUrl, '_blank'); };
+  var btnOk = document.createElement('button');
+  btnOk.textContent = '✅ Cupom Criado — Continuar →';
+  btnOk.style.cssText = 'padding:.6rem 1rem;background:#334155;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.85rem';
+  btnOk.onclick = cupomYampiConcluido;
+  btnsEl.appendChild(btnAbrir);
+  btnsEl.appendChild(btnOk);
+  btnsEl.style.display = 'flex';
+  btnsEl.style.flexWrap = 'wrap';
+  btnsEl.style.gap = '.75rem';
+}
+
+function _reabrirYampiCupom(encodedUrl) {
+  window.open(decodeURIComponent(encodedUrl), '_blank');
+}
+
+function abrirYampiCupom() {
+  window.open('https://app.yampi.com.br/marketing/promocodes/create', '_blank');
+}
+
+function cupomYampiConcluido() {
+  document.getElementById('modal-cupom-yampi').style.display = 'none';
+  // Recompõe a mensagem com os dados do pendente
+  var ta = document.getElementById('wpp-msg-afiliada');
+  if (_cupomYampiPendente) {
+    var p = _cupomYampiPendente;
+    var primeiroNome = (p.nome || '').split(' ')[0];
+    ta.value = 'Ola ' + primeiroNome + '! Tudo bem?\n\nSou a Julia da PowerMind! Ativamos o seu acesso como afiliada.\n\nSeus dados:\n- Link: https://www.powermindbr.com.br/?cupom=' + p.cupom + '&utm_source=afiliado&utm_medium=link\n- Cupom: ' + p.cupom + '\n- Email: ' + (p.email || '') + '\n- Senha: ' + (p.senha || 'PM@2026') + '\n\nAcesse seu painel em: ' + BASE_URL + '/afiliada\n\nQualquer duvida e so chamar aqui!';
+  }
+  document.getElementById('modal-acesso-wpp').style.display = 'flex';
 }
 
 function enviarAcessoWpp() {
@@ -3667,7 +3799,7 @@ async function pagarAfiliada(username) {
   if (!confirm('Confirmar pagamento para esta afiliada?')) return;
   var r = await fetch('/api/admin/pagar', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: authHeaders({'Content-Type':'application/json'}),
     body: JSON.stringify({username: username})
   });
   var data = await r.json();
@@ -3679,7 +3811,7 @@ async function pagarTodasAfiliadas() {
   if (!confirm('Confirmar pagamento para TODAS as afiliadas?')) return;
   var r = await fetch('/api/admin/pagar', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: authHeaders({'Content-Type':'application/json'}),
     body: JSON.stringify({})
   });
   var data = await r.json();
@@ -3691,7 +3823,7 @@ async function resetSenhaAfiliada(username, nome, wpp) {
   if (!confirm('Resetar senha de ' + nome + '?')) return;
   var r = await fetch('/api/admin/reset-senha', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: authHeaders({'Content-Type':'application/json'}),
     body: JSON.stringify({username: username})
   });
   var data = await r.json();
@@ -3759,6 +3891,46 @@ async function resetSenhaAfiliada(username, nome, wpp) {
 </div>
 
 <!-- Modal Acesso WhatsApp Afiliada -->
+<!-- Modal Criar Cupom Yampi -->
+<div id="modal-cupom-yampi" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1002;align-items:center;justify-content:center">
+  <div style="background:#1e293b;border-radius:12px;padding:2rem;width:480px;max-width:90vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem">
+      <span style="font-size:1.5rem">🏷️</span>
+      <h3 style="margin:0;color:#fff">Cupom na Yampi</h3>
+    </div>
+
+    <!-- Dados do cupom -->
+    <div style="background:#0a0f1e;border-radius:8px;padding:1rem;margin-bottom:1.25rem;border:1px solid #334155">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div>
+          <div style="color:#64748b;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.25rem">Código</div>
+          <div id="ycupom-code" style="color:#a78bfa;font-weight:700;font-size:1.1rem;letter-spacing:.05em"></div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.25rem">Desconto</div>
+          <div style="color:#34d399;font-weight:700;font-size:1.1rem">10%</div>
+        </div>
+        <div style="grid-column:1/-1">
+          <div style="color:#64748b;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.25rem">Descrição</div>
+          <div id="ycupom-desc" style="color:#fff;font-size:.9rem"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Favorito (bookmarklet) para instalar uma vez -->
+    <div id="ycupom-bookmark-hint" style="background:#1a2744;border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;border-left:3px solid #7c3aed;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+      <span style="color:#a78bfa;font-size:.8rem;flex:1;min-width:150px">⭐ Instale uma vez arrastando para a barra de favoritos:</span>
+      <a id="ycupom-bookmarklet-link" href="#" style="padding:.35rem .9rem;background:#7c3aed;color:#fff;border-radius:6px;font-size:.8rem;font-weight:600;text-decoration:none;cursor:grab;white-space:nowrap">PowerMind ⚡</a>
+    </div>
+
+    <!-- Status da automação -->
+    <div id="ycupom-status" style="color:#94a3b8;font-size:.875rem;text-align:center;margin-bottom:1rem;min-height:1.5em;line-height:1.5"></div>
+
+    <!-- Botões (preenchido dinamicamente) -->
+    <div id="ycupom-btns" style="display:none;gap:.75rem;justify-content:flex-end;flex-wrap:wrap"></div>
+  </div>
+</div>
+
 <div id="modal-acesso-wpp" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1001;align-items:center;justify-content:center">
   <div style="background:#1e293b;border-radius:12px;padding:2rem;width:500px;max-width:90vw">
     <h3 style="margin-bottom:1rem">Enviar Acesso via WhatsApp</h3>
